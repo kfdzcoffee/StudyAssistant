@@ -56,4 +56,6 @@ AI 驱动的错题整理与高考复习助手。基于 Electron，集成 DeepSee
 
 ## 许可证
 
-MIT
+本软件依据《学习助手-Study Assistant 开源终端软件使用许可协议》授权使用。
+
+协议全文见：https://studyassistant.kfdzcoffee.cn/legal.html
