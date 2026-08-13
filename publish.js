@@ -52,8 +52,19 @@ function api(method, url, body, isBinary) {
     try { git(['-c', 'user.name=Kfdzcoffee', '-c', 'user.email=me@kfdzcoffee.cn', 'commit', '-m', '学习助手 Study Assistant 桌面端 v1.8.8']); } catch (e) { /* 无改动 */ }
     try { git(['remote', 'add', 'origin', 'https://github.com/' + REPO + '.git']); } catch (e) { /* 已存在 */ }
 
-    // 2. 清空远程：删除 web 分支 与 旧 tag
-    try { git(['push', 'origin', '--delete', 'web']); console.log('已删除远程分支 web'); } catch (e) { console.log('删除 web 分支:', (e.stderr || e.message || '').trim().split('\n').pop()); }
+    // 2. 清空远程：删除 web 分支（git 重试，失败则用 API）+ 删除旧 tag
+    let webDeleted = false;
+    for (let i = 0; i < 3 && !webDeleted; i++) {
+      try { git(['push', 'origin', '--delete', 'web']); webDeleted = true; console.log('已删除远程分支 web'); }
+      catch (e) { console.log('删除 web 分支重试 ' + (i + 1) + ': ' + ((e.stderr || e.message || '').trim().split('\n').pop() || '')); }
+    }
+    if (!webDeleted) {
+      try {
+        const del = await api('DELETE', 'https://api.github.com/repos/' + REPO + '/git/refs/heads/web', null, false);
+        console.log('API 删除 web 分支:', del.status);
+        webDeleted = del.status === 204;
+      } catch (e) { console.log('API 删除 web 失败:', e.message); }
+    }
     try { git(['push', 'origin', '--delete', 'refs/tags/' + TAG]); console.log('已删除远程 tag ' + TAG); } catch (e) { console.log('删除 tag:', (e.stderr || e.message || '').trim().split('\n').pop()); }
 
     // 3. 干净推送 master（force 覆盖）
