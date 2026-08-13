@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data: http://127.0.0.1:*; img-src 'self' data: http://127.0.0.1:* https:; connect-src 'self' http://127.0.0.1:*; frame-src https://kfdzcoffee.cn https:;">
+  <title>学习助手 · Study Assistant</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <img class="brand-logo" src="logo-app.svg" alt="学习助手" />
+        <div class="brand-text"><b>学习助手</b><span>Study Assistant</span></div>
+      </div>
+      <nav class="nav" id="nav">
+        <button class="nav-item active" data-view="home"><span class="ni">🏠</span><span>首页</span></button>
+        <button class="nav-item" data-view="chat"><span class="ni">💬</span><span>AI 助手</span></button>
+        <button class="nav-item" data-view="entry"><span class="ni">✍️</span><span>错题录入</span></button>
+        <button class="nav-item" data-view="essay"><span class="ni">📝</span><span>作文分析</span></button>
+        <button class="nav-item" data-view="score"><span class="ni">🎯</span><span>分数预测</span></button>
+        <button class="nav-item" data-view="college"><span class="ni">🎓</span><span>目标院校</span></button>
+        <button class="nav-item" data-view="stats"><span class="ni">📊</span><span>错题统计</span></button>
+        <button class="nav-item" data-view="archive"><span class="ni">📚</span><span>档案编辑</span></button>
+        <button class="nav-item" data-view="git"><span class="ni">🔁</span><span>Git 同步</span></button>
+        <button class="nav-item" data-view="preview"><span class="ni">🌐</span><span>网页预览</span></button>
+        <button class="nav-item" data-view="users"><span class="ni">👥</span><span>用户</span></button>
+        <button class="nav-item" data-view="settings"><span class="ni">⚙️</span><span>设置</span></button>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="sf-top">
+          <div class="ws-tag" id="ws-tag" title="工作目录">📁 未设置</div>
+          <button id="theme-toggle" title="切换主题">🌙</button>
+        </div>
+        <div class="sf-brand">
+          <img class="sidebar-logo" src="logo.svg" alt="Kfdzcoffee" />
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="tb-left"><span class="tb-dot"></span><span class="tb-title" id="tb-title">首页</span></div>
+        <div class="tb-right">
+          <span class="tb-path" id="tb-path" title="工作目录"></span>
+          <button class="btn-mini" id="tb-build">🏗️ 构建知识库</button>
+          <button class="btn-mini" id="tb-refresh" title="刷新页面以应用配置">🔄 刷新</button>
+        </div>
+      </header>
+      <!-- ===== 首页：问候 + 倒计时 + 鸡汤 + 专注计时 ===== -->
+      <section class="view active" id="view-home">
+        <div class="home-greeting" id="home-greeting">欢迎回来</div>
+        <div class="home-grid">
+          <div class="card home-countdown">
+            <div class="cd-label" id="cd-label">距离 2027 年高考</div>
+            <div class="cd-num" id="cd-num">--</div>
+            <div class="cd-unit" id="cd-unit">天</div>
+            <div class="cd-date" id="cd-date"></div>
+          </div>
+          <div class="card home-quote">
+            <div class="quote-emoji" id="quote-emoji">💪</div>
+            <p class="quote-text" id="home-quote">好好学习，天天向上。</p>
+            <button class="btn-mini" id="quote-refresh">🍀 换一句</button>
+          </div>
+        </div>
+        <div class="card focus-card">
+          <div class="card-head">
+            <span>⏱ 专注计时（本次学习时长）</span>
+            <button class="btn-mini" id="focus-enlarge">🔍 放大</button>
+          </div>
+          <div id="focus-clock" class="flip-clock"></div>
+          <div class="focus-controls">
+            <button class="btn-primary" id="focus-start">▶ 开始</button>
+            <button class="btn-outline" id="focus-pause">⏸ 暂停</button>
+            <button class="btn-outline" id="focus-reset">↺ 重置</button>
+            <button class="btn-outline warn" id="focus-record">🏁 结束并记录</button>
+          </div>
+          <div class="focus-info" id="focus-info">尚未开始</div>
+          <div class="records-block">
+            <div class="card-head sub records-head"><span>专注记录</span><button class="btn-mini warn" id="focus-clear">🗑 清空全部</button></div>
+            <div id="focus-summary" class="focus-summary"></div>
+            <div id="focus-records" class="records-list"></div>
+          </div>
+        </div>
+        <div class="home-logo-wrap">
+          <img class="home-logo" src="logo.svg" alt="Kfdzcoffee" />
+        </div>
+      </section>
+
+      <!-- ===== AI 助手 ===== -->
+      <section class="view" id="view-chat">
+        <div class="view-head">
+          <h1>AI 助手</h1>
+          <p>错题归纳 / 学习归纳 · 每次写文件与 Git 操作都会先征求你的同意</p>
+        </div>
+        <div class="chat-wrap">
+          <div class="chat-log" id="chat-log"></div>
+          <div class="chat-tools">
+            <label class="chip">
+              <input type="checkbox" id="chat-attach" /> 📷 附图
+              <input type="file" id="chat-img" accept="image/*" hidden />
+            </label>
+            <button class="btn-outline" id="chat-ocr">📝 OCR 识别文字</button>
+            <button class="btn-outline" id="chat-img-edit">✂️ 编辑图片</button>
+            <label class="chip" title="勾选后上传图片自动识别文字填入输入框"><input type="checkbox" id="chat-ocr-auto" /> 自动OCR</label>
+            <select id="chat-mode" class="chip-select">
+              <option value="chat">💬 自由问答</option>
+              <option value="error-entry">📥 错题录入</option>
+              <option value="essay-analysis">📝 作文分析</option>
+              <option value="score-predict">🎯 分数预测</option>
+            </select>
+          </div>
+          <div id="chat-img-preview" class="img-preview hidden"></div>
+          <div class="chat-input-row">
+            <textarea id="chat-input" rows="2" placeholder="输入你的问题，或描述一道错题 / 一篇作文…"></textarea>
+            <button id="chat-send" class="btn-primary">发送</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 错题录入 ===== -->
+      <section class="view" id="view-entry">
+        <div class="view-head">
+          <h1>错题录入</h1>
+          <p>粘贴文本或拍照/选图 → AI 按知识库格式整理 → 确认后写入错题库 → 可选上传 GitHub</p>
+        </div>
+        <div class="form-grid">
+          <div class="card form-card">
+            <div class="field">
+              <label>科目</label>
+              <select id="entry-subject">
+                <option value="语文">语文</option>
+                <option value="数学" selected>数学</option>
+                <option value="英语">英语</option>
+                <option value="地理">地理</option>
+                <option value="历史">历史</option>
+                <option value="政治">政治</option>
+                <option value="其他（新建）">其他（新建科目）</option>
+              </select>
+            </div>            <div class="field" id="entry-newsubj-field" style="display:none">
+              <label>新科目名称</label>
+              <input id="entry-newsubj" placeholder="例：物理" />
+            </div>            <div class="field">
+              <label>来源 / 考试</label>
+              <input id="entry-source" placeholder="例：2026海淀高三上期末" />
+            </div>
+            <div class="field">
+              <label>录入日期</label>
+              <input id="entry-date" type="date" />
+            </div>
+            <div class="field">
+              <label>题目内容</label>
+              <textarea id="entry-question" rows="6" placeholder="粘贴题目文本；或使用下方附图让 AI 识别题干"></textarea>
+            </div>
+            <div class="field">
+              <label>你的作答（可选）</label>
+              <textarea id="entry-answer" rows="3" placeholder="你的错误答案 / 当时思路，便于 AI 分析错因"></textarea>
+            </div>
+            <div class="field">
+              <label>附图识别</label>
+              <div class="img-row">
+                <input type="file" id="entry-img" accept="image/*" hidden />
+                <button class="btn-outline" id="entry-img-btn">📷 选择 / 拍照图片</button>
+                <button class="btn-outline" id="entry-img-edit">✂️ 编辑</button>
+                <button class="btn-outline" id="entry-ocr">📝 OCR 识别文字</button>
+                <label class="chip" title="勾选后上传图片自动识别文字填入题目"><input type="checkbox" id="entry-ocr-auto" /> 自动OCR</label>
+                <span id="entry-img-name"></span>
+              </div>
+              <div id="entry-img-preview" class="img-preview hidden"></div>
+            </div>
+            <div class="field actions">
+              <button class="btn-primary" id="entry-draft">📥 加入待录入区</button>
+              <button class="btn-outline" id="entry-submit">⚡ 直接整理并录入</button>
+              <button class="btn-outline" id="entry-manual">✍️ 手动录入</button>
+              <button class="btn-outline" id="entry-clear">清空</button>
+            </div>
+          </div>
+          <div class="card result-card">
+            <div class="card-head"><span>处理过程 & 结果</span><span id="entry-status" class="status-dot"></span></div>
+            <div id="entry-proc" class="proc-log"></div>
+            <div id="entry-result" class="md-body"></div>
+            <div id="entry-post" class="post-btns hidden">
+              <button class="btn-primary" id="entry-git">🔁 是否上传 GitHub？</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 待录入区：一次可录入多道，一键全部入库 -->
+        <div class="card">
+          <div class="card-head"><span>📥 待录入区（可一次录入多道）</span><span class="hint" id="queue-count">0 条草稿</span></div>
+          <div id="entry-queue" class="queue-list">
+            <div class="hint">先在左侧录入题目并点击「加入待录入区」，AI 生成草稿后在此汇总，可一键全部写入错题库。</div>
+          </div>
+          <div class="queue-actions">
+            <button class="btn-primary" id="queue-confirm-all">✅ 一键确认全部录入错题库</button>
+            <button class="btn-outline" id="queue-clear">清空待录入区</button>
+          </div>
+          <div id="queue-proc" class="proc-log"></div>
+        </div>
+      </section>
+
+      <!-- ===== 作文分析 ===== -->
+      <section class="view" id="view-essay">
+        <div class="view-head">
+          <h1>作文分析</h1>
+          <p>评分明细 · 错因逐条分析 · 纵向对比（历史作文）· 横向对比</p>
+        </div>
+        <div class="form-grid">
+          <div class="card form-card">
+            <div class="field">
+              <label>科目</label>
+              <select id="essay-subject"><option value="语文">语文（满分50）</option><option value="英语">英语（满分20）</option></select>
+            </div>
+            <div class="field">
+              <label>作文题目 / 来源（可选）</label>
+              <input id="essay-topic" placeholder="例：2026海淀期末《快与慢》" />
+            </div>
+            <div class="field">
+              <label>作文正文</label>
+              <textarea id="essay-text" rows="10" placeholder="粘贴作文全文，或附图让 AI 识别"></textarea>
+            </div>
+            <div class="field">
+              <label>附图识别</label>
+              <div class="img-row">
+                <input type="file" id="essay-img" accept="image/*" hidden />
+                <button class="btn-outline" id="essay-img-btn">📷 选择 / 拍照图片</button>
+                <button class="btn-outline" id="essay-img-edit">✂️ 编辑</button>
+                <button class="btn-outline" id="essay-ocr">📝 OCR 识别文字</button>
+                <label class="chip" title="勾选后上传图片自动识别文字填入正文"><input type="checkbox" id="essay-ocr-auto" /> 自动OCR</label>
+                <span id="essay-img-name"></span>
+              </div>
+              <div id="essay-img-preview" class="img-preview hidden"></div>
+            </div>
+            <div class="field actions">
+              <button class="btn-primary" id="essay-submit">🚀 开始分析</button>
+            </div>
+          </div>
+          <div class="card result-card">
+            <div class="card-head"><span>分析过程 & 结果</span><span id="essay-status" class="status-dot"></span></div>
+            <div id="essay-proc" class="proc-log"></div>
+            <div id="essay-result" class="md-body"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 分数预测 ===== -->
+      <section class="view" id="view-score">
+        <div class="view-head">
+          <h1>分数预测</h1>
+          <p>AI 读取各科档案与现有预测，重新估算高考分数并更新 分数预测.md</p>
+        </div>
+        <div class="card center-card">
+          <button class="btn-primary big" id="score-run">🎯 开始预测</button>
+          <p class="hint">执行前会读取：README / 各科档案 / 分数预测.md；写文件会先征求同意。</p>
+          <div id="score-proc" class="proc-log"></div>
+          <div id="score-result" class="md-body"></div>
+        </div>
+      </section>
+
+      <!-- ===== 目标院校 & 主页 ===== -->
+      <section class="view" id="view-college">
+        <div class="view-head">
+          <h1>目标院校 & 主页</h1>
+          <p>编辑首页（README）的目标院校（可上传院校图片、填写官网与招生办网址）与个人介绍</p>
+        </div>
+        <div class="card">
+          <div class="card-head"><span>🎓 目标院校</span><button class="btn-mini" id="college-add">＋ 添加院校</button></div>
+          <div id="college-list"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span>👤 关于作者 / 介绍</span></div>
+          <div class="field">
+            <label>个人介绍</label>
+            <textarea id="college-intro" rows="2" placeholder="一句话介绍自己（如：高三在读，目标人大 / 法大）。"></textarea>
+          </div>
+          <div class="field"><label>个人网站</label>
+            <div class="ws-row"><input id="college-web-text" class="git-msg" style="flex:none;width:130px" placeholder="显示名" /><input id="college-web-url" class="git-msg" placeholder="https://…" /></div>
+          </div>
+          <div class="field"><label>个人博客</label>
+            <div class="ws-row"><input id="college-blog-text" class="git-msg" style="flex:none;width:130px" placeholder="显示名" /><input id="college-blog-url" class="git-msg" placeholder="https://…" /></div>
+          </div>
+          <div class="field actions">
+            <button class="btn-primary" id="college-save">💾 保存到首页</button>
+            <button class="btn-outline" id="college-reload">↺ 重新读取</button>
+          </div>
+          <div id="college-proc" class="proc-log"></div>
+        </div>
+      </section>
+
+      <!-- ===== 错题统计 ===== -->
+      <section class="view" id="view-stats">
+        <div class="view-head">
+          <h1>错题统计</h1>
+          <p>各科错题 / 作文一览（点击条目可打开对应档案编辑）</p>
+        </div>
+        <div class="stats-toolbar">
+          <button class="btn-outline" id="stats-refresh">🔄 刷新统计</button>
+          <span class="hint" id="stats-summary"></span>
+          <input id="stats-search" class="git-msg" placeholder="🔍 搜索错题内容（含题目 / 错因 / 解法）…" style="flex:1;min-width:200px;max-width:420px;" />
+          <span class="tb-spacer"></span>
+          <span class="hint" id="exam-sel-count">已选 0 题</span>
+          <button class="btn-primary" id="exam-gen">📋 生成试卷(Word)</button>
+          <button class="btn-outline" id="exam-clear">清空选择</button>
+        </div>
+        <div id="stats-search-results" class="search-results hidden"></div>
+        <div id="stats-list" class="stats-list"></div>
+      </section>
+
+      <!-- ===== 档案编辑 ===== -->
+      <section class="view" id="view-archive">
+        <div class="view-head">
+          <h1>档案编辑</h1>
+          <p>直接编辑知识库 md 文件（内容层）或网页代码（index.html / js/exam-builder.js 等）</p>
+        </div>
+        <div class="archive-layout">
+          <div class="card tree-card">
+            <div class="card-head"><span>文件</span><button class="btn-mini" id="tree-refresh">刷新</button></div>
+            <div id="tree" class="tree"></div>
+          </div>
+          <div class="card editor-card">
+            <div class="editor-head">
+              <span id="editor-file" class="editor-file">未选择文件</span>
+              <div>
+                <button class="btn-mini" id="editor-mode">👁 预览</button>
+                <button class="btn-mini primary" id="editor-save">保存（UTF-8+BOM）</button>
+              </div>
+            </div>
+            <textarea id="editor" class="editor" spellcheck="false" placeholder="选择左侧文件开始编辑…"></textarea>
+            <div id="editor-preview" class="md-body editor-preview hidden"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Git 同步 ===== -->
+      <section class="view" id="view-git">
+        <div class="view-head">
+          <h1>Git 同步</h1>
+          <p>按知识库规范：clean → add → commit（修改内容 - 日期）→ push（重试3次）</p>
+        </div>
+        <div class="card">
+          <div class="git-toolbar">
+            <button class="btn-outline" id="git-status-btn">状态</button>
+            <button class="btn-outline warn" id="git-clean-btn">Clean</button>
+            <input id="git-msg" class="git-msg" placeholder="提交信息（默认：修改内容 - 日期）" />
+            <button class="btn-primary" id="git-commit-btn">Commit</button>
+            <button class="btn-primary" id="git-push-btn">Push</button>
+            <button class="btn-outline" id="git-scan-btn">🧹 AIGC 串扫描</button>
+          </div>
+          <div id="git-branch" class="git-branch"></div>
+          <pre id="git-status" class="git-output"></pre>
+          <div class="card-head sub"><span>最近提交</span></div>
+          <pre id="git-log" class="git-output"></pre>
+          <div id="git-actions" class="proc-log"></div>
+        </div>
+      </section>
+
+      <!-- ===== 网页预览 ===== -->
+      <section class="view" id="view-preview">
+        <div class="view-head">
+          <h1>网页预览</h1>
+          <p>本地服务器实时渲染 docsify 知识库</p>
+        </div>
+        <div class="preview-toolbar">
+          <button class="btn-mini" id="preview-refresh">🔄 刷新预览</button>
+          <span class="hint" id="preview-hint"></span>
+        </div>
+        <webview id="preview" class="preview-web"></webview>
+      </section>
+
+      <!-- ===== 用户管理 ===== -->
+      <section class="view" id="view-users">
+        <div class="view-head">
+          <h1>用户管理</h1>
+          <p>多用户支持：每个用户使用独立的知识库文件夹；当前登录用户特殊显示，切换用户时弹窗确认并自动刷新。</p>
+        </div>
+        <div class="card">
+          <div class="card-head"><span>👤 当前用户：<b id="user-current-name">—</b></span></div>
+          <div class="field">
+            <label>昵称（首页问候显示：欢迎回来，XXX）</label>
+            <input id="user-nickname" class="git-msg" placeholder="你的昵称" />
+          </div>
+          <div class="field">
+            <label>知识库文件夹（工作目录）</label>
+            <div class="ws-row">
+              <input id="user-ws" class="git-msg" placeholder="选择知识库文件夹" />
+              <button class="btn-outline" id="user-ws-btn">选择…</button>
+            </div>
+          </div>
+          <div class="field actions">
+            <button class="btn-primary" id="user-save">💾 保存当前用户配置</button>
+            <button class="btn-outline" id="user-reload">↺ 重新读取</button>
+          </div>
+          <div id="user-proc" class="proc-log"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span>👥 所有用户</span><button class="btn-mini" id="users-refresh">🔄 刷新列表</button></div>
+          <div class="ws-row"><span class="hint">当前登录：<b id="user-current">—</b></span></div>
+          <p class="hint">当前登录的用户会高亮标记「当前」。</p>
+          <div id="users-list" class="users-list"></div>
+          <div class="ws-row">
+            <button class="btn-primary" id="users-add">＋ 新增用户（创建引导）</button>
+            <span class="hint">新增用户会在所选位置新建独立知识库文件夹，并重新走一遍初始化向导。</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 设置 ===== -->
+      <section class="view" id="view-settings">
+        <div class="view-head">
+          <h1>设置</h1>
+          <p>AI 提供商 · 系统提示词 · 工作目录 · 外观</p>
+        </div>
+        <div class="settings-layout">
+          <div class="card">
+            <div class="sec-title">🎨 外观</div>
+            <div class="ws-row">
+              <select id="set-theme">
+                <option value="dark">深色（默认）</option>
+                <option value="light">浅色</option>
+              </select>
+            </div>
+
+            <div class="sec-title">📝 图片 OCR 识别（可选）</div>
+            <div class="ws-row">
+              <label class="chip" title="在「错题录入 / 作文 / AI 助手」上传图片后，自动用所选 OCR 识别文字"><input type="checkbox" id="set-ocr-auto" /> 上传图片后自动 OCR 识别文字</label>
+            </div>
+            <div class="ws-row">
+              <label style="font-size:13px;color:var(--text-2)">识别引擎</label>
+              <select id="set-ocr-engine">
+                <option value="win">Windows 自带 OCR（推荐 · 中文印刷体最佳）</option>
+                <option value="tesseract">Tesseract.js（全精度模型）</option>
+              </select>
+            </div>
+            <p class="hint">两种引擎二选一。识别前会自动做灰度与对比度预处理以提升精度；Windows 自带 OCR 离线、零依赖，对中文印刷体效果最好；若你的系统缺少中文 OCR 语言包会自动回退 Tesseract。首次用 Tesseract 需下载语言包（约 30MB）。识别结果会填入对应文本框（题目 / 作文正文 / 聊天输入框），可先编辑再发送。</p>
+
+            <div class="sec-title">⏱ Token 消耗预警</div>
+            <div class="ws-row">
+              <label style="font-size:13px;color:var(--text-2)">今日消耗</label>
+              <span class="hint" id="token-today">0</span>
+            </div>
+            <div class="ws-row">
+              <label style="font-size:13px;color:var(--text-2)">预警阈值</label>
+              <input id="set-token-warn" type="number" min="1000" step="1000" class="git-msg" placeholder="例：500000" />
+            </div>
+            <p class="hint">单日 Token 消耗达到阈值时弹窗提示，避免用量 / 费用失控。</p>
+
+            <div class="sec-title">🎯 目标考试（首页倒计时）</div>
+            <div class="exam-row">
+              <label>类型</label>
+              <select id="set-exam-type">
+                <option value="gaokao">高考</option>
+                <option value="zhongkao">中考</option>
+                <option value="custom">自定义</option>
+              </select>
+              <label>年份</label>
+              <input id="set-exam-year" type="number" min="2024" max="2099" class="git-msg" />
+              <label>月</label>
+              <select id="set-exam-month"></select>
+              <label>日</label>
+              <select id="set-exam-day"></select>
+            </div>
+            <div class="field" id="set-exam-name-field" style="display:none">
+              <label>考试名称（自定义，例：期末考试 / 一模）</label>
+              <input id="set-exam-name" class="git-msg" placeholder="输入自定义考试名称" />
+            </div>
+            <p class="hint">考试日期各地不同，可自行设定（中考尤甚）；选择「自定义」可手动输入考试名称。</p>
+
+            <div class="sec-title">🔑 组卷密码（网页端生成试卷用）</div>
+            <div class="ws-row">
+              <input id="set-exampwd" type="text" class="git-msg" placeholder="留空=恢复默认密码" />
+              <button class="btn-mini" id="exampwd-apply" title="将密码写入网页 index.html">写入网页</button>
+            </div>
+            <p class="hint">默认密码为 <b>000000</b>。留空并点「写入网页」即恢复为默认密码；网页端生成试卷时需输入此密码。</p>
+
+            <div class="sec-title">💾 数据导出 / 导入</div>
+            <div class="ws-row">
+              <button class="btn-outline" id="data-export">⬆️ 导出全部数据</button>
+              <button class="btn-outline" id="data-import">⬇️ 导入数据</button>
+            </div>
+            <p class="hint">导出为单个 .json 文件（含知识库全部文件、设置与专注记录；出于隐私不含 API Key）。也可导入他人分享的数据。</p>
+
+            <div class="sec-title">📜 开源致谢</div>
+            <div class="ws-row">
+              <button class="btn-outline" id="credits-open">📜 致谢 · 开源软件</button>
+              <span class="hint">本项目使用的开源软件（名称 + GitHub 地址）</span>
+            </div>
+
+            <div class="sec-title">🔐 Git 授权配置</div>
+            <div class="field"><label>Git 用户名</label><input id="git-name" placeholder="git config user.name" /></div>
+            <div class="field"><label>Git 邮箱</label><input id="git-email" placeholder="git config user.email" /></div>
+            <div class="ws-row"><button class="btn-outline" id="git-save">保存到 Git 配置</button><span class="hint" id="git-cfg-status"></span></div>
+            <div class="field"><label>远程仓库 URL</label><input id="git-remote" placeholder="https://github.com/用户名/仓库.git" /></div>
+            <div class="ws-row">
+              <button class="btn-outline" id="git-init-repo">🗂 初始化 Git 仓库</button>
+              <button class="btn-outline" id="git-remote-set">设置远程仓库</button>
+              <button class="btn-outline" id="git-auth-test">🔍 测试连接/授权</button>
+              <button class="btn-outline warn" id="git-creds-clear">清除 GitHub 凭据</button>
+            </div>
+            <p class="hint" id="git-auth-status">HTTPS 推送凭据由系统凭据管理器保存；「测试连接」会触发 GitHub 授权。</p>
+
+            <div class="sec-title">👤 关于作者</div>
+            <div class="about-body">
+              <img class="about-logo" src="logo.svg" alt="Kfdzcoffee" />
+              <div class="about-info">
+                <div class="about-name">Kfdzcoffee</div>
+                <div class="about-links">
+                  <div class="about-link"><span class="al-label">个人网站</span><a href="#" data-url="https://kfdzcoffee.cn/">kfdzcoffee.cn</a></div>
+                  <div class="about-link"><span class="al-label">个人博客</span><a href="#" data-url="https://blog.kfdzcoffee.cn/">blog.kfdzcoffee.cn</a></div>
+                  <div class="about-link"><span class="al-label">GitHub</span><a href="#" data-url="https://github.com/kfdzcoffee">github.com/kfdzcoffee</a></div>
+                  <div class="about-link"><span class="al-label">邮箱</span><a href="#" data-url="mailto:me@kfdzcoffee.cn">me@kfdzcoffee.cn</a></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="sec-title">📦 版本信息</div>
+            <div class="ws-row">
+              <button class="btn-outline" id="version-open">📦 版本更新内容（当前 v1.8.8）</button>
+              <button class="btn-primary" id="update-check">🔄 检查新版本</button>
+            </div>
+            <p class="hint" id="update-status">自动从 GitHub Releases 检查并获取新版安装包。</p>
+          </div>
+
+          <div class="card">
+            <div class="sec-title">🤖 AI 提供商</div>
+            <p class="hint">API Key 使用系统密钥环加密存储；模型可从下拉选择预设。</p>
+            <div id="providers"></div>
+
+            <div class="sec-title">📜 系统提示词</div>
+            <div class="field">
+              <label>错题归纳帮手</label>
+              <textarea id="prompt-error" rows="3"></textarea>
+            </div>
+            <div class="field">
+              <label>学习归纳帮手</label>
+              <textarea id="prompt-study" rows="3"></textarea>
+            </div>
+
+            <div class="sec-title">🛠 操作</div>
+            <div class="field actions">
+              <button class="btn-primary" id="settings-save">保存设置</button>
+              <button class="btn-outline" id="settings-wizard">初始化向导</button>
+            </div>
+            <div class="field actions">
+              <button class="btn-outline" id="btn-build">🏗️ 构建 / 重建知识库</button>
+              <button class="btn-outline" id="btn-refresh">🔄 刷新页面（应用配置）</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="app-footer">
+        <span>Copyright © 2024-2026 Kfdzcoffee. All Rights Reserved.</span>
+        <span class="footer-legal">本软件适用于 <a href="#" id="footer-legal">《咖啡豆子coffee的小站访客及友链协议》</a></span>
+      </footer>
+    </main>
+  </div>
+
+  <!-- ===== 生成试卷（组卷选项） ===== -->
+  <div id="exam-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-head"><span>📋 生成试卷</span><button class="modal-close" id="exam-modal-close">✕</button></div>
+      <div class="wizard-body">
+        <div class="field">
+          <label>试卷名称</label>
+          <input id="exam-name" placeholder="例：数学错题组卷 2026.8.12" />
+        </div>
+        <div class="exam-opts">
+          <label><input type="checkbox" id="exam-opt-source" checked /> 带来源</label>
+          <label><input type="checkbox" id="exam-opt-answer" /> 带答案</label>
+          <label><input type="checkbox" id="exam-opt-analysis" checked /> 带解析（错因分析/正确解法）</label>
+          <label><input type="checkbox" id="exam-opt-similar" /> 带同类题巩固</label>
+          <label class="exam-sep"><input type="checkbox" id="exam-opt-separate" checked /> 答案与解析另起一页放最后</label>
+        </div>
+        <p class="hint" id="exam-hint">共 <span id="exam-count">0</span> 题待生成</p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-outline" id="exam-modal-cancel">取消</button>
+        <button class="btn-primary" id="exam-modal-go">生成 Word 文档</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 错题详情 ===== -->
+  <div id="detail-modal" class="modal-overlay hidden">
+    <div class="modal modal-lg">
+      <div class="modal-head"><span>📄 错题详情</span><button class="modal-close" id="detail-close">✕</button></div>
+      <div class="modal-tool" id="detail-file"></div>
+      <div class="modal-diff-wrap"><div class="md-body" id="detail-body"></div></div>
+      <div class="modal-actions">
+        <label class="chip" style="cursor:pointer"><input type="checkbox" id="detail-sel" /> 加入组卷</label>
+        <button class="btn-primary" id="detail-gen">📋 生成试卷</button>
+        <button class="btn-outline" id="detail-edit">✏️ 编辑该文件</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 构建 docsify 知识库 ===== -->
+  <div id="build-modal" class="modal-overlay hidden">
+    <div class="modal modal-lg">
+      <div class="modal-head"><span>🏗️ 构建 docsify 错题知识库</span><button class="modal-close" id="build-close">✕</button></div>
+      <div class="wizard-body">
+        <p class="hint" id="build-hint"></p>
+        <div class="field">
+          <label>科目（用逗号/顿号分隔）</label>
+          <input id="build-subjects" value="语文,数学,英语,地理,历史,政治" />
+        </div>
+        <div class="field">
+          <label>组卷密码（可选，写入网页端）</label>
+          <input id="build-exampwd" type="text" placeholder="留空则使用默认密码" />
+          <p class="hint">留空使用默认密码 <b>000000</b>；构建后网页端生成试卷需输入此密码。</p>
+        </div>
+        <div id="build-files" class="build-files"></div>
+        <div id="build-proc" class="proc-log"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-outline" id="build-cancel">取消</button>
+        <button class="btn-primary" id="build-go">🚀 立即构建</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 手动录入错题 ===== -->
+  <div id="manual-modal" class="modal-overlay hidden">
+    <div class="modal modal-lg">
+      <div class="modal-head"><span>✍️ 手动录入错题</span><button class="modal-close" id="manual-close">✕</button></div>
+      <div class="wizard-body manual-form">
+        <p class="hint">不经过 AI，直接按知识库格式写入错题档案（错题 / 错因 / 录入日期 / 正确答案 / 错因分析 / 典型例题）。支持 $...$ 数学公式。</p>
+        <div class="manual-grid">
+          <div class="field">
+            <label>科目</label>
+            <select id="manual-subject">
+              <option value="语文">语文</option>
+              <option value="数学" selected>数学</option>
+              <option value="英语">英语</option>
+              <option value="地理">地理</option>
+              <option value="历史">历史</option>
+              <option value="政治">政治</option>
+              <option value="其他（新建科目）">其他（新建科目）</option>
+            </select>
+          </div>
+          <div class="field" id="manual-newsubj-field" style="display:none">
+            <label>新科目名称</label>
+            <input id="manual-newsubj" placeholder="例：物理" />
+          </div>
+          <div class="field">
+            <label>错题标题</label>
+            <input id="manual-title" placeholder="例：分式不等式含参求值" />
+          </div>
+          <div class="field">
+            <label>录入日期</label>
+            <input id="manual-date" type="date" />
+          </div>
+          <div class="field">
+            <label>来源 / 考试（可选）</label>
+            <input id="manual-source" placeholder="例：2026海淀高三上期末" />
+          </div>
+        </div>
+        <div class="field">
+          <label>原题</label>
+          <textarea id="manual-question" rows="4" placeholder="题目内容（支持 $...$ / $$...$$ 数学公式）"></textarea>
+        </div>
+        <div class="field">
+          <label>错因分析</label>
+          <textarea id="manual-reason" rows="3" placeholder="当时的错误思路 / 知识盲区 / 错因"></textarea>
+        </div>
+        <div class="field">
+          <label>正确解法</label>
+          <textarea id="manual-solution" rows="4" placeholder="正确解题过程"></textarea>
+        </div>
+        <div class="field">
+          <label>正确答案</label>
+          <textarea id="manual-answer" rows="2" placeholder="答案"></textarea>
+        </div>
+        <div class="field">
+          <label>关键技巧（可选）</label>
+          <textarea id="manual-tip" rows="2" placeholder="⚠️ 关键技巧：…"></textarea>
+        </div>
+        <div class="field">
+          <label>典型例题 / 同类题变形（可选）</label>
+          <textarea id="manual-similar" rows="3" placeholder="同类题 / 变形题，可带答案"></textarea>
+        </div>
+        <div class="field">
+          <label>写入预览</label>
+          <div id="manual-preview" class="md-body manual-preview"><span class="hint">填写后点「👁 预览」或直接「💾 写入错题库」。</span></div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <span class="hint" id="manual-status"></span>
+        <button class="btn-outline" id="manual-preview-btn">👁 预览</button>
+        <button class="btn-outline" id="manual-cancel">取消</button>
+        <button class="btn-primary" id="manual-save">💾 写入错题库</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 开源致谢 ===== -->
+  <div id="credits-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-head"><span>📜 致谢 · 开源软件</span><button class="modal-close" id="credits-close">✕</button></div>
+      <div class="wizard-body">
+        <p class="hint">本应用与知识库使用了以下开源软件，特此致谢（点击名称可打开 GitHub）：</p>
+        <div id="credits-list" class="credits-list"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-outline" id="credits-close2">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 图片编辑（旋转 / 框选） ===== -->
+  <div id="img-edit-modal" class="modal-overlay hidden">
+    <div class="modal modal-lg">
+      <div class="modal-head"><span>🖼 图片编辑（旋转 / 框选）</span><button class="modal-close" id="img-edit-close">✕</button></div>
+      <div class="wizard-body">
+        <div class="img-edit-toolbar">
+          <button class="btn-outline" id="img-rot-left">⟲ 左转90°</button>
+          <button class="btn-outline" id="img-rot-right">⟳ 右转90°</button>
+          <label class="img-rot-slider-label">微调
+            <input type="range" id="img-rot-slider" min="-180" max="180" value="0" step="1" />
+            <span id="img-rot-val">0°</span>
+          </label>
+          <button class="btn-outline" id="img-crop-toggle">🎯 框选</button>
+          <button class="btn-outline" id="img-reset">↺ 重置</button>
+        </div>
+        <div class="img-edit-stage" id="img-edit-stage">
+          <canvas id="img-edit-canvas"></canvas>
+        </div>
+        <p class="hint" id="img-edit-status">点「🎯 框选」后在图片上拖拽，仅保留框内区域；「✅ 应用图片」后替换当前图片。</p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-outline" id="img-edit-cancel">取消</button>
+        <button class="btn-primary" id="img-edit-apply">✅ 应用图片</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 版本更新内容 ===== -->
+  <div id="version-modal" class="modal-overlay hidden">
+    <div class="modal modal-lg">
+      <div class="modal-head"><span>📦 版本更新内容</span><button class="modal-close" id="version-close">✕</button></div>
+      <div class="wizard-body">
+        <div class="version-now">当前版本 <b id="version-now-tag">v1.8.8</b> · Copyright © 2024-2026 Kfdzcoffee</div>
+        <div id="version-list" class="version-list"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-outline" id="version-close2">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 新增用户 ===== -->
+  <div id="add-user-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-head"><span>👥 新增用户</span><button class="modal-close" id="add-user-close">✕</button></div>
+      <div class="wizard-body">
+        <div class="field">
+          <label>用户知识库文件夹（该用户使用的知识库位置）</label>
+          <div class="ws-row">
+            <input id="add-user-dir" class="git-msg" readonly placeholder="选择该用户的知识库文件夹（可选已有或新建）" />
+            <button class="btn-outline" id="add-user-dir-btn">选择文件夹…</button>
+            <button class="btn-outline" id="add-user-new-btn">➕ 新建文件夹…</button>
+          </div>
+        </div>
+        <div class="field hidden" id="add-user-new-field">
+          <label>新文件夹名称（将创建在所选位置下）</label>
+          <input id="add-user-new-name" placeholder="例：小明的错题库" />
+        </div>
+        <div class="field">
+          <label>用户名（用于显示与切换）</label>
+          <input id="add-user-name" placeholder="例：小明" />
+        </div>
+        <p class="hint">选择该用户的知识库文件夹（可指向已有知识库，或新建一个空文件夹），创建后自动进入初始化向导，为该用户配置考试日期 / AI / Git 等。</p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-outline" id="add-user-cancel">取消</button>
+        <button class="btn-primary" id="add-user-ok">创建用户并开始配置</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 环境配置（可选） ===== -->
+  <div id="env-config-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-head"><span>🛠 环境配置（可选）</span><button class="modal-close" id="env-config-close">✕</button></div>
+      <div class="wizard-body">
+        <p class="hint">环境配置为<strong>可选项</strong>。即使已安装也可勾选重新配置（重装）。若配置环境不当（版本过旧 / 安装路径异常 / 未加入系统 PATH 等），可能导致 Git 同步、知识库构建、网页预览等服务无法正常使用。</p>
+        <div id="env-config-list" class="env-config-list"></div>
+        <div class="field">
+          <label>安装方式</label>
+          <div class="ws-row">
+            <label class="chip"><input type="radio" name="env-install-mode" value="cmd" checked /> 命令安装（winget 自动安装到指定位置）</label>
+            <label class="chip"><input type="radio" name="env-install-mode" value="manual" /> 自行下载安装包安装</label>
+          </div>
+        </div>
+        <div class="field">
+          <label>安装 / 下载位置（可选）</label>
+          <div class="ws-row">
+            <input id="env-config-dir" class="git-msg" readonly placeholder="命令安装的目标位置 / 安装包保存目录（留空则用默认位置）" />
+            <button class="btn-outline" id="env-config-dir-btn">选择…</button>
+          </div>
+          <p class="hint" id="env-config-mode-hint">命令安装：用 Windows 包管理器（winget）自动下载并安装到指定位置。自行安装：打开官网下载安装包，请手动安装。</p>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-outline" id="env-config-cancel">跳过</button>
+        <button class="btn-primary" id="env-config-go">确认，开始安装所选项目</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 安装风险告知书 ===== -->
+  <div id="risk-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-head"><span>⚠️ 安装风险告知书</span><button class="modal-close" id="risk-close">✕</button></div>
+      <div class="wizard-body">
+        <div class="warn-box">
+          <div class="warn-icon">⚠️</div>
+          <h3>风险告知 · 请仔细阅读</h3>
+          <p>你将通过「命令安装」自动下载并安装以下软件到本机：<b id="risk-items"></b></p>
+          <p>上述软件来源于互联网。本应用仅代为执行安装命令，<strong>不对其安全性、完整性、可靠性负责</strong>。请确认来源可信、自行评估风险后再继续。</p>
+          <p>自动安装将调用系统包管理器（winget）下载并安装，可能需要较长时间，并可能触发系统「用户账户控制（UAC）」提示。</p>
+        </div>
+        <label class="agree-check"><input type="checkbox" id="risk-agree" /> 我已阅读并了解上述风险，同意执行自动安装</label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-outline" id="risk-cancel">取消</button>
+        <button class="btn-primary" id="risk-ok">同意并开始安装</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 导出数据 ===== -->
+  <div id="data-export-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-head"><span>⬆️ 导出数据</span><button class="modal-close" id="data-export-close">✕</button></div>
+      <div class="wizard-body">
+        <p class="hint">选择要导出的用户（连同其整个知识库文件），打包为 .zip 数据包。</p>
+        <div id="data-export-users" class="users-list"></div>
+        <label class="agree-check"><input type="checkbox" id="data-export-api" /> 包含 AI 提供商 API Key（敏感信息，请妥善保管导出文件）</label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-outline" id="data-export-cancel">取消</button>
+        <button class="btn-primary" id="data-export-ok">导出为 .zip</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 导入数据 ===== -->
+  <div id="data-import-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-head"><span>⬇️ 导入数据</span><button class="modal-close" id="data-import-close">✕</button></div>
+      <div class="wizard-body">
+        <p class="hint">数据包：<b id="data-import-file">—</b> · 含 <span id="data-import-count">0</span> 个用户 · 导出时间：<span id="data-import-time">—</span></p>
+        <div class="field">
+          <label>导入模式</label>
+          <div class="ws-row">
+            <label class="chip"><input type="radio" name="data-import-mode" value="insert" checked /> 插入所选用户（保留现有用户，不覆盖）</label>
+            <label class="chip"><input type="radio" name="data-import-mode" value="replace" /> 替换全部（清空现有用户，完全用导入数据）</label>
+          </div>
+        </div>
+        <div class="field">
+          <label>选择要导入的用户（可多选）</label>
+          <div id="data-import-users" class="users-list"></div>
+        </div>
+        <div class="field">
+          <label>解压到（用户知识库文件夹所在位置）</label>
+          <div class="ws-row">
+            <input id="data-import-dir" class="git-msg" readonly placeholder="选择解压目标文件夹（各导入用户将作为子文件夹放入）" />
+            <button class="btn-outline" id="data-import-dir-btn">选择…</button>
+          </div>
+        </div>
+        <p class="hint" id="data-import-tip">插入模式：导入用户将作为新用户追加，与现有用户重名时文件夹自动加后缀（如 小明(2)），不会覆盖、不会报错。</p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-outline" id="data-import-cancel">取消</button>
+        <button class="btn-primary" id="data-import-ok">确认导入</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 专注计时全屏放大 ===== -->
+  <div id="focus-fullscreen" class="focus-fullscreen hidden">
+    <button class="fs-close" id="fs-close">✕</button>
+    <div class="fs-inner">
+      <div class="fs-title">⏱ 专注计时</div>
+      <div id="focus-clock-big" class="flip-clock flip-clock-big"></div>
+      <div class="fs-info" id="fs-info"></div>
+    </div>
+  </div>
+
+  <!-- ===== 确认弹窗 ===== -->
+  <div id="confirm-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-head">
+        <span>⚠️ 需要你的确认</span>
+        <button class="modal-close" id="confirm-cancel-x">✕</button>
+      </div>
+      <div class="modal-tool" id="confirm-tool"></div>
+      <div class="modal-summary" id="confirm-summary"></div>
+      <div class="modal-diff-wrap">
+        <div class="md-body" id="confirm-diff"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-outline" id="confirm-reject">拒绝</button>
+        <button class="btn-primary" id="confirm-approve">同意执行</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== AI 提问（二次确认 / 补充信息） ===== -->
+  <div id="ask-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-head">
+        <span>❓ AI 需要你的确认</span>
+        <button class="modal-close" id="ask-close">✕</button>
+      </div>
+      <div class="modal-summary" id="ask-question"></div>
+      <div class="modal-diff-wrap">
+        <div id="ask-options" class="ask-options"></div>
+        <div class="field">
+          <label>你的回答</label>
+          <input id="ask-input" placeholder="输入回答，或点击上方快捷选项…" />
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-outline" id="ask-cancel">跳过</button>
+        <button class="btn-primary" id="ask-ok">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Token 消耗预警 ===== -->
+  <div id="token-warn-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-head">
+        <span>⚠️ Token 消耗预警</span>
+        <button class="modal-close" id="token-warn-close">✕</button>
+      </div>
+      <div class="modal-summary" id="token-warn-summary"></div>
+      <div class="modal-actions">
+        <button class="btn-primary" id="token-warn-ok">知道了</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 初始化向导 ===== -->
+  <div id="wizard" class="modal-overlay hidden">
+    <div class="modal modal-lg">
+      <div class="modal-head"><span>🚀 欢迎使用学习助手 · 初始化配置</span></div>
+      <div class="wizard-body">
+        <!-- 步骤0：欢迎 -->
+        <div id="wiz-step0">
+          <div class="welcome-box">
+            <div class="welcome-icon">👋</div>
+            <h2>欢迎来到学习助手</h2>
+            <p>让我们一起开始配置吧！只需几步，即可开始整理错题、分析作文、预测分数、专注复习。</p>
+          </div>
+        </div>
+
+        <!-- 步骤1：基础配置 -->
+        <div id="wiz-step1">
+          <div class="env-check">
+            <div class="env-check-head">
+              <span class="hint">🖥 环境检测（git / node / npm）</span>
+              <button class="btn-mini" id="wiz-env-check">🔍 重新检测</button>
+              <button class="btn-mini" id="wiz-env-config">🛠 配置 / 重装环境（可选）</button>
+            </div>
+            <div id="wiz-env-list" class="env-list"></div>
+          </div>
+          <p class="hint">1. 你的昵称（用于首页问候与用户显示）</p>
+          <div class="ws-row">
+            <input id="wiz-nickname" class="git-msg" placeholder="你的昵称，例：小明（可留空，稍后在「用户」页设置）" />
+          </div>
+          <p class="hint">2. 你的目标考试与日期（用于首页倒计时）</p>
+          <div class="exam-row">
+            <label>类型</label>
+            <select id="wiz-exam-type">
+              <option value="gaokao">高考</option>
+              <option value="zhongkao">中考</option>
+              <option value="custom">自定义</option>
+            </select>
+            <label>年份</label>
+            <input id="wiz-exam-year" type="number" min="2024" max="2099" class="git-msg" />
+            <label>月</label>
+            <select id="wiz-exam-month"></select>
+            <label>日</label>
+            <select id="wiz-exam-day"></select>
+          </div>
+          <div class="field" id="wiz-exam-name-field" style="display:none">
+            <label>考试名称（自定义，例：期末考试 / 一模）</label>
+            <input id="wiz-exam-name" class="git-msg" placeholder="输入自定义考试名称" />
+          </div>
+          <p class="hint">3. 选择知识库工作目录（docsify 网页文件夹）</p>
+          <div class="ws-row">
+            <input id="wiz-ws" class="git-msg" placeholder="默认：d:\BaiduSyncdisk\学习\高考复习\网页" />
+            <button class="btn-outline" id="wiz-ws-btn">选择…</button>
+          </div>
+          <p class="hint">4. 选择默认 AI 提供商，并填写 API Key（密钥环加密）</p>
+          <div class="wiz-providers" id="wiz-providers"></div>
+          <p class="hint">5. 系统提示词（可保持默认）</p>
+          <div class="field">
+            <label>错题归纳帮手</label>
+            <textarea id="wiz-prompt-error" rows="3"></textarea>
+          </div>
+          <div class="field">
+            <label>学习归纳帮手</label>
+            <textarea id="wiz-prompt-study" rows="3"></textarea>
+          </div>
+        </div>
+
+        <!-- 步骤2：Git 配置 -->
+        <div id="wiz-step2" class="hidden">
+          <p class="hint">4. Git 授权配置（用于将知识库推送到 GitHub）</p>
+          <div class="field">
+            <label>Git 用户名</label>
+            <input id="wiz-git-name" placeholder="git config user.name" />
+          </div>
+          <div class="field">
+            <label>Git 邮箱</label>
+            <input id="wiz-git-email" placeholder="git config user.email" />
+          </div>
+          <div class="field">
+            <label>远程仓库 URL（可选）</label>
+            <input id="wiz-git-remote" placeholder="https://github.com/用户名/仓库.git" />
+          </div>
+          <div class="ws-row">
+            <button class="btn-outline" id="wiz-git-save">保存 Git 配置</button>
+            <button class="btn-outline" id="wiz-git-test">🔍 测试连接 / 授权</button>
+            <span class="hint" id="wiz-git-status"></span>
+          </div>
+          <p class="hint">HTTPS 推送凭据由系统凭据管理器保存；「测试连接」会触发 GitHub 授权，可在初始化后于「设置 → Git 授权配置」中清除凭据。</p>
+        </div>
+
+        <!-- 步骤3：是否导入数据 -->
+        <div id="wiz-step3" class="hidden">
+          <p class="hint">5. 是否需要导入已有数据（从他人导出的 .json 文件）？</p>
+          <div class="ws-row">
+            <button class="btn-outline" id="wiz-import">⬇️ 导入数据（可选）</button>
+            <span class="hint" id="wiz-import-status">不需要可直接点「下一步」跳过。</span>
+          </div>
+          <p class="hint">导入会覆盖同名文件并应用其设置（不含 API Key）；也可稍后在「设置 → 数据」中导入。</p>
+        </div>
+
+        <!-- 步骤4：AI 责任声明 -->
+        <div id="wiz-step4" class="hidden">
+          <div class="warn-box">
+            <div class="warn-icon">⚠️</div>
+            <h3>重要声明 · 请务必阅读</h3>
+            <p>本服务基于人工智能（AI）模型生成内容。AI 所输出的文字、分析、答案及学习建议，均可能存在错误、疏漏或偏差；使用者须对基于本服务所生成内容的正确性、合规性，以及由此引发的一切后果，自行承担全部责任。</p>
+            <p>本工具仅作为辅助学习之用途，请勿过分依赖 AI。对 AI 生成的任何内容，均应结合教材、教师讲解及权威资料进行核实与甄别；未经核验的内容，不得直接用于正式考试作答、作业提交或对外传播，以免对学业造成损害。</p>
+            <p>请保持理性与独立思考，一切以课堂所学与教材为准。谨慎使用，认真学习。</p>
+          </div>
+          <label class="agree-check"><input type="checkbox" id="wiz-ai-agree" /> 我已阅读并知晓 AI 相关声明，并承诺对基于本服务生成的内容自行承担责任</label>
+        </div>
+
+        <!-- 步骤5：协议 -->
+        <div id="wiz-step5" class="hidden">
+          <div class="agree-notice">
+            <div class="agree-icon">📜</div>
+            <div>
+              <h3>本软件适用于《咖啡豆子coffee的小站访客及友链协议》</h3>
+              <p>使用本软件即表示您知悉并同意：本软件的使用、所提供的服务及友链相关事项，均受《咖啡豆子coffee的小站访客及友链协议》之约束。请仔细阅读下方协议全文后再行确认。</p>
+            </div>
+          </div>
+          <div class="agreement-box">
+            <iframe id="wiz-legal" class="wiz-legal" src="https://studyassistant.kfdzcoffee.cn/legal.html" title="Legal - Kfdzcoffee"></iframe>
+            <p class="hint" style="margin-top:6px;">若上方无法显示，请 <a href="#" id="wiz-legal-open">在新窗口打开协议网页</a>。</p>
+          </div>
+          <label class="agree-check"><input type="checkbox" id="wiz-agree" /> 我已阅读并同意《咖啡豆子coffee的小站访客及友链协议》，并确认本软件适用该协议</label>
+        </div>
+        <!-- 步骤6：完成 -->
+        <div id="wiz-step6" class="hidden">
+          <div class="welcome-box">
+            <div class="welcome-icon big">🥳</div>
+            <h2>恭喜你完成配置！</h2>
+            <p>所有基础设置已完成，现在可以开始使用学习助手啦：</p>
+            <ul class="finish-list">
+              <li>✍️ 错题录入 · 🤖 AI 归纳 · 手动录入</li>
+              <li>📝 作文分析 · 🎯 分数预测 · 📊 错题统计与全文搜索</li>
+              <li>⏱ 专注计时 · 👥 多用户 · 🔁 Git 同步 · 🌐 网页预览</li>
+            </ul>
+            <p>点击下方「开始使用」，祝你学习进步！</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-outline hidden" id="wiz-back">← 上一步</button>
+        <button class="btn-primary" id="wiz-next">下一步：Git 配置 →</button>
+        <button class="btn-primary hidden" id="wiz-done">🚀 开始使用</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+  <script src="markdown.js"></script>
+  <!-- MathJax（本地 SVG 渲染，离线可用）：识别 $...$ / $$...$$ -->
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+      svg: { fontCache: 'none' },
+      startup: { typeset: false }
+    };
+  </script>
+  <script src="vendor/mathjax/tex-svg.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

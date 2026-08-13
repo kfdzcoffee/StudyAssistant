@@ -1,0 +1,75 @@
+{
+  "name": "study-helper",
+  "productName": "学习助手",
+  "version": "1.8.8",
+  "description": "AI 驱动的错题整理与高考复习助手桌面应用（集成 DeepSeek / Kimi / Claude）",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win"
+  },
+  "author": {
+    "name": "Kfdzcoffee",
+    "email": "me@kfdzcoffee.cn"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "app-builder-bin": "^4.2.0",
+    "electron": "^33.2.0",
+    "electron-builder": "^26.0.12",
+    "mathjax": "^3.2.2"
+  },
+  "dependencies": {
+    "adm-zip": "^0.6.0",
+    "tesseract.js": "^6.0.1"
+  },
+  "build": {
+    "appId": "com.kfdzcoffee.studyhelper",
+    "productName": "学习助手",
+    "asar": true,
+    "electronDist": "node_modules/electron/dist",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "!test-smoke.js",
+      "!smoke-electron.js",
+      "!test-ocr.js",
+      "!test-ocr-electron.js",
+      "!test-429.js",
+      "!smoke-result.json",
+      "!ocr-result.json",
+      "!copy-ok.txt",
+      "!*.log"
+    ],
+    "asarUnpack": [
+      "node_modules/tesseract.js/**",
+      "node_modules/tesseract.js-core/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "legalTrademarks": "Kfdzcoffee"
+    },
+    "nsis": {
+      "artifactName": "学习助手-安装-${version}.exe",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "学习助手",
+      "uninstallDisplayName": "学习助手 ${version}",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico"
+    }
+  }
+}

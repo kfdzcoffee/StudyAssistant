@@ -1,0 +1,24 @@
+# 依赖与构建产物
+node_modules/
+dist/
+*.log
+
+# 测试与临时脚本
+test-*.js
+smoke-*.js
+smoke-result.json
+copy-ok.txt
+build-check.txt
+build-final.log
+ocr-result.json
+diag-*.js
+verify-*.js
+check-*.js
+
+# OCR 语言包（运行时下载）
+chi_sim.traineddata
+eng.traineddata
+
+# 系统
+.DS_Store
+Thumbs.db

@@ -1,0 +1,934 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+  <meta charset="UTF-8">
+  <meta name="robots" content="noindex, nofollow, noarchive, noimageindex, nosnippet">
+  <meta name="googlebot" content="noindex, nofollow">
+  <meta name="bingbot" content="noindex, nofollow">
+  <meta name="GPTBot" content="noindex, nofollow">
+  <meta name="CCBot" content="noindex, nofollow">
+  <meta name="Google-Extended" content="noindex, nofollow">
+  <meta name="anthropic-ai" content="noindex, nofollow">
+  <link rel="icon" href="https://images.kfdzcoffee.cn/i/1/avatar.png">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify/themes/vue.css" />
+  <style>
+    /* ===== HarmonyOS Design Token ===== */
+    :root {
+      --hm-primary: #007DFF;
+      --hm-primary-light: #E5F0FF;
+      --hm-bg: #F1F3F5;
+      --hm-bg-card: #FFFFFF;
+      --hm-bg-sidebar: #F7F8FA;
+      --hm-text-primary: #1A1A1A;
+      --hm-text-secondary: #666666;
+      --hm-text-tertiary: #999999;
+      --hm-border: #E0E0E0;
+      --hm-border-light: #F0F0F0;
+      --hm-radius-lg: 16px;
+      --hm-radius-md: 12px;
+      --hm-radius-sm: 8px;
+      --hm-shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+      --hm-shadow-md: 0 2px 8px rgba(0,0,0,0.08);
+      --hm-font: "HarmonyOS Sans", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    }
+    body {
+      font-family: var(--hm-font);
+      background: var(--hm-bg);
+      -webkit-font-smoothing: antialiased;
+      margin: 0;
+    }
+    .sidebar {
+      background: var(--hm-bg-sidebar) !important;
+      border-right: 1px solid var(--hm-border-light) !important;
+      padding-top: 8px !important;
+      overflow-y: auto;
+    }
+    .sidebar-nav {
+      overflow-y: auto;
+    }
+    .sidebar-nav li > a {
+      font-family: var(--hm-font);
+      font-size: 14px;
+      color: var(--hm-text-primary);
+      padding: 10px 16px;
+      border-radius: var(--hm-radius-sm);
+      margin: 2px 8px;
+      transition: background 0.15s;
+    }
+    .sidebar-nav li > a:hover {
+      background: var(--hm-primary-light);
+      color: var(--hm-primary);
+    }
+    .sidebar-nav li.active > a {
+      background: var(--hm-primary-light) !important;
+      color: var(--hm-primary) !important;
+      font-weight: 600;
+      border-right: 3px solid var(--hm-primary) !important;
+    }
+    .sidebar-nav li > span {
+      font-family: var(--hm-font);
+      font-size: 14px;
+      color: var(--hm-text-primary);
+      display: block;
+      padding: 10px 16px;
+      border-radius: var(--hm-radius-sm);
+      margin: 2px 8px;
+      transition: background 0.15s;
+    }
+    .sidebar-nav li > span:hover {
+      background: var(--hm-primary-light);
+      color: var(--hm-primary);
+    }
+    .content {
+      background: var(--hm-bg);
+      padding-top: 0 !important;
+    }
+    .markdown-section {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 28px 32px;
+      font-family: var(--hm-font);
+      color: var(--hm-text-primary);
+      line-height: 1.85;
+    }
+    .markdown-section h1 {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--hm-text-primary);
+      margin: 0 0 20px 0;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--hm-primary);
+    }
+    .markdown-section h2 {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--hm-text-primary);
+      margin: 32px 0 16px;
+      padding-left: 12px;
+      border-left: 4px solid var(--hm-primary);
+    }
+    .markdown-section h3 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--hm-text-primary);
+      margin: 24px 0 12px;
+    }
+    .markdown-section p {
+      margin: 12px 0;
+      font-size: 15px;
+      color: var(--hm-text-secondary);
+    }
+    .markdown-section a { color: var(--hm-primary); text-decoration: none; }
+    .markdown-section a:hover { text-decoration: underline; }
+    .markdown-section code {
+      background: var(--hm-primary-light);
+      color: var(--hm-primary);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    }
+    .markdown-section pre {
+      background: #1E1E2E;
+      border-radius: var(--hm-radius-md);
+      padding: 16px 20px;
+      overflow-x: auto;
+    }
+    .markdown-section pre code { background: none; color: #CDD6F4; padding: 0; }
+    .markdown-section blockquote {
+      background: var(--hm-primary-light);
+      border-left: 4px solid var(--hm-primary);
+      border-radius: 0 var(--hm-radius-sm) var(--hm-radius-sm) 0;
+      padding: 14px 18px;
+      margin: 20px 0;
+      font-size: 14px;
+    }
+    .markdown-section blockquote p { margin: 4px 0; color: var(--hm-text-primary); }
+    .markdown-section blockquote strong { color: var(--hm-primary); }
+    .markdown-section .table-wrapper {
+      overflow-x: auto;
+      margin: 20px 0;
+      padding: 4px 2px;
+      border-radius: var(--hm-radius-md);
+      box-shadow: var(--hm-shadow-md);
+    }
+    .markdown-section table {
+      display: table;
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 14px;
+      background: var(--hm-bg-card);
+      border-radius: var(--hm-radius-md);
+      overflow: hidden;
+    }
+    .markdown-section th {
+      background: var(--hm-bg-sidebar);
+      font-weight: 600;
+      text-align: center;
+      padding: 12px 14px;
+      color: var(--hm-text-primary);
+      font-size: 13px;
+      border-bottom: 1px solid var(--hm-border);
+    }
+    .markdown-section td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--hm-border-light);
+      vertical-align: middle;
+      color: var(--hm-text-secondary);
+    }
+    .markdown-section tr:last-child td { border-bottom: none; }
+    .markdown-section td:first-child { text-align: left; font-weight: 500; color: var(--hm-text-primary); }
+    .markdown-section td:not(:first-child) { text-align: center; }
+    .markdown-section hr { margin: 28px 0; border: none; height: 1px; background: var(--hm-border-light); }
+    .math { display: inline-block; }
+    footer {
+      font-family: var(--hm-font);
+      text-align: center;
+      padding: 20px;
+      color: var(--hm-text-tertiary);
+      font-size: 12px;
+      border-top: 1px solid var(--hm-border-light);
+      background: var(--hm-bg-sidebar);
+    }
+    .search { margin: 12px 12px 0 12px; }
+    .search input {
+      font-family: var(--hm-font);
+      background: var(--hm-bg-card);
+      border: 1px solid var(--hm-border);
+      border-radius: var(--hm-radius-sm);
+      padding: 10px 14px;
+      font-size: 14px;
+      transition: border 0.15s;
+      width: 100%;
+      box-sizing: border-box;
+      color: var(--hm-text-primary);
+    }
+    .search input:focus {
+      outline: none;
+      border-color: var(--hm-primary);
+      box-shadow: 0 0 0 3px rgba(0,125,255,0.1);
+    }
+    .search input::placeholder { color: var(--hm-text-tertiary); }
+    .search .results-panel {
+      font-family: var(--hm-font);
+      background: var(--hm-bg-card);
+      border-radius: var(--hm-radius-md);
+      box-shadow: var(--hm-shadow-md);
+      margin-top: 8px;
+    }
+    .search .matching-post {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--hm-border-light);
+      transition: background 0.15s;
+    }
+    .search .matching-post:hover { background: var(--hm-primary-light); }
+    .search .matching-post:last-child { border-bottom: none; }
+    #app {
+      font-family: var(--hm-font);
+      color: var(--hm-text-tertiary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-size: 16px;
+      background: var(--hm-bg);
+    }
+    .github-corner { display: none; }
+    @media (min-width: 1200px) { .markdown-section { max-width: 900px; } }
+  </style>
+</head>
+<body>
+  <div id="app">加载中…</div>
+  <footer style="text-align:center;padding:20px;color:#999;font-size:0.8rem;border-top:1px solid #eee;margin-top:40px;">
+    Copyright &copy; 2026 Kfdzcoffee. All Rights Reserved.
+  </footer>
+  <script>
+    window.$docsify = {
+      name: '📚 错题知识库',
+      nameLink: '/',
+      loadSidebar: true,
+      subMaxLevel: 1,
+      auto2top: false,
+      search: {
+        placeholder: '搜索错题...',
+        noData: '没有找到相关错题',
+        paths: 'auto',
+        depth: 4,
+      },
+      plugins: [
+        function(hook, vm) {
+          hook.afterEach(function(html, next) {
+            // 给表格包裹响应式容器
+            html = html.replace(/<table>/g, '<div class="table-wrapper"><table>');
+            html = html.replace(/<\/table>/g, '</table></div>');
+            next(html);
+          });
+          // 侧边栏：默认折叠各科"错题记录"下的子题列表
+          var folderTextCache = {}; // 缓存文本内容，防止路由切换后丢失
+          function collapseSidebarFolders() {
+            var sidebar = document.querySelector('.sidebar-nav');
+            if (!sidebar) return;
+            var allLis = sidebar.querySelectorAll('li');
+            allLis.forEach(function(li) {
+              var childUl = li.querySelector('ul');
+              if (!childUl) return;
+              // 收集 <li> 的直接文本节点（docsify 把纯文本条目渲染为直接文本节点，非 <p> 标签）
+              var textContent = '';
+              var textNodes = [];
+              var hasStructuredContent = false;
+              for (var i = 0; i < li.childNodes.length; i++) {
+                var node = li.childNodes[i];
+                if (node.nodeType === 3) { // Text node
+                  var t = node.textContent.trim();
+                  if (t) { textContent += t; textNodes.push(node); }
+                } else if (node.nodeType === 1) { // Element node
+                  if (node.tagName === 'UL') break; // 到达子 <ul>，停止
+                  if (node.hasAttribute('data-folder')) {
+                    // 已经处理过（doneEach 重新执行时）
+                    hasStructuredContent = true;
+                    break;
+                  }
+                  hasStructuredContent = true;
+                  break;
+                }
+              }
+              if (!textContent || hasStructuredContent) return;
+
+              // 使用缓存，避免重建时丢失
+              var cached = folderTextCache[textContent.trim()];
+              var shouldBeExpanded = cached && cached.expanded;
+
+              // 初始折叠
+              childUl.style.display = shouldBeExpanded ? '' : 'none';
+
+              // 将文本节点替换为可点击的 span
+              var span = document.createElement('span');
+              span.textContent = (shouldBeExpanded ? '▾ ' : '▸ ') + textContent;
+              span.style.cursor = 'pointer';
+              span.style.userSelect = 'none';
+              span.setAttribute('data-folder', shouldBeExpanded ? 'expanded' : 'collapsed');
+              textNodes.forEach(function(n) { li.removeChild(n); });
+              li.insertBefore(span, childUl);
+
+              span.addEventListener('click', function(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                if (childUl.style.display === 'none') {
+                  childUl.style.display = '';
+                  span.textContent = '▾ ' + textContent;
+                  span.setAttribute('data-folder', 'expanded');
+                  folderTextCache[textContent.trim()] = { expanded: true };
+                } else {
+                  childUl.style.display = 'none';
+                  span.textContent = '▸ ' + textContent;
+                  span.setAttribute('data-folder', 'collapsed');
+                  folderTextCache[textContent.trim()] = { expanded: false };
+                }
+              });
+            });
+          }
+          // doneEach: 每次路由切换后重新应用折叠
+          hook.doneEach(function() {
+            // 先让 MathJax 排版
+            if (window.MathJax) {
+              MathJax.typesetPromise();
+            }
+            // 延迟折叠，等 docsify 完成侧边栏 DOM 重建
+            setTimeout(collapseSidebarFolders, 100);
+          });
+          // 初始加载时也执行
+          hook.ready(function() {
+            // 等初始 DOM 渲染完成后折叠
+            var retryCount = 0;
+            var initTimer = setInterval(function() {
+              var sidebar = document.querySelector('.sidebar-nav');
+              if (sidebar && sidebar.querySelectorAll('li').length > 0) {
+                collapseSidebarFolders();
+                clearInterval(initTimer);
+              } else if (++retryCount > 30) {
+                clearInterval(initTimer);
+              }
+            }, 200);
+          });
+        }
+      ]
+    };
+  </script>
+  <script src="//cdn.jsdelivr.net/npm/docsify/lib/docsify.min.js"></script>
+  <!-- 搜索插件 -->
+  <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/search.min.js"></script>
+  <!-- MathJax -->
+  <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: false,
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
+  <script id="MathJax-script" async src="//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<!-- 选题组卷 & 分数预测 CSS -->
+<style>
+/* ===== 选题组卷：checkbox ===== */
+.qb-checkbox {
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  cursor: pointer;
+  accent-color: #4a90d9;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+.markdown-section h4 {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+/* ===== 选题组卷：浮动工具栏 ===== */
+.qb-toolbar {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  z-index: 9999;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+.qb-toolbar .qb-count {
+  font-weight: 700;
+  color: #4a90d9;
+  font-size: 16px;
+  min-width: 50px;
+  text-align: center;
+}
+.qb-toolbar .qb-count span {
+  font-size: 22px;
+}
+.qb-btn {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.qb-btn-primary {
+  background: #4a90d9;
+  color: #fff;
+}
+.qb-btn-primary:hover { background: #3a7bc8; }
+.qb-btn-outline {
+  background: #fff;
+  color: #4a90d9;
+  border: 1.5px solid #4a90d9;
+}
+.qb-btn-outline:hover { background: #f0f6ff; }
+.qb-btn-danger {
+  background: #fff;
+  color: #e74c3c;
+  border: 1.5px solid #e74c3c;
+}
+.qb-btn-danger:hover { background: #fef0ef; }
+
+/* ===== 选项弹窗 ===== */
+.qb-modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 10000;
+  justify-content: center;
+  align-items: center;
+}
+.qb-modal-overlay.active { display: flex; }
+.qb-modal {
+  background: #fff;
+  border-radius: 14px;
+  padding: 28px;
+  width: 400px;
+  max-width: 90vw;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+}
+.qb-modal h3 { margin-top: 0; color: #333; }
+.qb-modal label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  cursor: pointer;
+  font-size: 15px;
+}
+.qb-modal input[type="checkbox"] {
+  width: 16px; height: 16px;
+  accent-color: #4a90d9;
+}
+.qb-modal .qb-field-label {
+  display: block;
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 6px;
+  cursor: default;
+  padding: 0;
+}
+.qb-modal input[type="text"],
+.qb-modal input[type="password"] {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+  margin-bottom: 4px;
+}
+.qb-modal input[type="text"]:focus,
+.qb-modal input[type="password"]:focus {
+  border-color: #4a90d9;
+  box-shadow: 0 0 0 3px rgba(74,144,217,0.12);
+}
+.qb-modal .qb-field-hint {
+  font-size: 12px;
+  color: #999;
+  margin-top: 2px;
+  margin-bottom: 10px;
+}
+.qb-modal .qb-modal-actions {
+  margin-top: 20px;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+/* ===== 分数预测页样式 ===== */
+.score-predict { max-width: 900px; margin: 0 auto; padding: 20px 0; }
+.score-predict .sp-header { text-align: center; margin-bottom: 30px; }
+.score-predict .sp-header h2 { color: #333; font-size: 24px; }
+.score-predict .sp-header p { color: #888; font-size: 14px; }
+.sp-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 30px; }
+.sp-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  border-left: 4px solid #4a90d9;
+  transition: transform 0.2s;
+}
+.sp-card:hover { transform: translateY(-2px); }
+.sp-card .sp-subject { font-size: 18px; font-weight: 700; color: #333; margin-bottom: 10px; }
+.sp-card .sp-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; color: #666; }
+.sp-card .sp-row .sp-val { font-weight: 600; color: #333; }
+.sp-card .sp-bar-bg { background: #eee; border-radius: 4px; height: 8px; margin-top: 10px; overflow: hidden; }
+.sp-card .sp-bar-fg { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #4a90d9, #67b8e3); transition: width 0.8s ease; }
+.sp-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
+@media (max-width: 700px) { .sp-charts { grid-template-columns: 1fr; } }
+.sp-chart-box { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+.sp-chart-box h4 { margin-top: 0; text-align: center; color: #555; font-size: 15px; }
+.sp-chart-box canvas { max-height: 300px; }
+
+/* ===== 通用 UI 优化 ===== */
+.markdown-section { max-width: 900px; }
+.markdown-section table { font-size: 14px; }
+.markdown-section h4 { border-bottom: 1px solid #eee; padding-bottom: 6px; }
+.sidebar { background: #f8f9fb; }
+.sidebar-nav li > a { transition: color 0.2s; }
+.sidebar-nav li > a:hover { color: #4a90d9; }
+</style>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<!-- 选题组卷插件 -->
+<script>
+(function() {
+  'use strict';
+
+  const STORAGE_KEY = 'exam-builder-v2';
+  const state = {
+    selectedIds: new Set(),
+    options: { includeAnalysis: true, includeSource: true, includeAnswer: false, includeSimilar: false }
+  };
+
+  function loadState() {
+    try {
+      const s = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      if (s) {
+        state.selectedIds = new Set(s.selectedIds || []);
+        if (s.options) Object.assign(state.options, s.options);
+      }
+    } catch(e) {}
+  }
+
+  function saveState() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      selectedIds: [...state.selectedIds],
+      options: state.options
+    }));
+  }
+
+  // Docsify plugin
+  if (!window.$docsify) window.$docsify = {};
+  if (!window.$docsify.plugins) window.$docsify.plugins = [];
+  window.$docsify.plugins.push(function(hook) {
+    hook.doneEach(function() {
+      loadState();
+      setTimeout(function() {
+        injectCheckboxes();
+        renderToolbar();
+      }, 200);
+    });
+  });
+
+  function injectCheckboxes() {
+    var content = document.querySelector('.markdown-section');
+    if (!content) return;
+    // 同时扫描 h2、h3（英语错题用 h3）、h4（其他科目用 h4）
+    var headings = content.querySelectorAll('h2, h3, h4');
+    headings.forEach(function(heading) {
+      var text = heading.textContent || '';
+      if (!text.match(/错题\s*\d+/)) return;
+      if (heading.querySelector('.qb-checkbox')) return;
+      var id = heading.id || text.trim().replace(/\s+/g, '-').replace(/[：:]/g, '-');
+
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.className = 'qb-checkbox';
+      cb.dataset.qid = id;
+      cb.checked = state.selectedIds.has(id);
+
+      cb.addEventListener('change', function() {
+        if (cb.checked) state.selectedIds.add(id);
+        else state.selectedIds.delete(id);
+        saveState();
+        updateToolbar();
+      });
+
+      heading.style.display = 'flex';
+      heading.style.alignItems = 'flex-start';
+      heading.insertBefore(cb, heading.firstChild);
+    });
+  }
+
+  function renderToolbar() {
+    var existing = document.getElementById('qb-toolbar');
+    if (existing) existing.remove();
+
+    var tb = document.createElement('div');
+    tb.id = 'qb-toolbar';
+    tb.className = 'qb-toolbar';
+    tb.innerHTML =
+      '<span style="color:#666;">已选：</span>' +
+      '<span class="qb-count"><span id="qb-num">' + state.selectedIds.size + '</span> 题</span>' +
+      '<button class="qb-btn qb-btn-outline" id="qb-btn-options">选项</button>' +
+      '<button class="qb-btn qb-btn-primary" id="qb-btn-generate">生成试卷</button>' +
+      '<button class="qb-btn qb-btn-danger" id="qb-btn-clear">清空</button>';
+    document.body.appendChild(tb);
+
+    document.getElementById('qb-btn-options').addEventListener('click', showOptionsModal);
+    document.getElementById('qb-btn-generate').addEventListener('click', generateExam);
+    document.getElementById('qb-btn-clear').addEventListener('click', clearSelection);
+
+    // Options modal
+    var modal = document.createElement('div');
+    modal.id = 'qb-modal';
+    modal.className = 'qb-modal-overlay';
+    modal.innerHTML =
+      '<div class="qb-modal">' +
+      '<h3>试卷选项</h3>' +
+      '<label><input type="checkbox" id="qb-opt-analysis" ' + (state.options.includeAnalysis ? 'checked' : '') + '> 包含解析</label>' +
+      '<label><input type="checkbox" id="qb-opt-source" ' + (state.options.includeSource ? 'checked' : '') + '> 包含来源</label>' +
+      '<label><input type="checkbox" id="qb-opt-answer" ' + (state.options.includeAnswer ? 'checked' : '') + '> 包含正确答案</label>' +
+      '<label><input type="checkbox" id="qb-opt-similar" ' + (state.options.includeSimilar ? 'checked' : '') + '> 包含同类题巩固</label>' +
+      '<div class="qb-modal-actions">' +
+      '<button class="qb-btn qb-btn-outline" id="qb-modal-cancel">取消</button>' +
+      '<button class="qb-btn qb-btn-primary" id="qb-modal-confirm">确认</button>' +
+      '</div></div>';
+    document.body.appendChild(modal);
+
+    document.getElementById('qb-modal-cancel').addEventListener('click', function() {
+      modal.classList.remove('active');
+    });
+    document.getElementById('qb-modal-confirm').addEventListener('click', function() {
+      state.options.includeAnalysis = document.getElementById('qb-opt-analysis').checked;
+      state.options.includeSource = document.getElementById('qb-opt-source').checked;
+      state.options.includeAnswer = document.getElementById('qb-opt-answer').checked;
+      state.options.includeSimilar = document.getElementById('qb-opt-similar').checked;
+      saveState();
+      modal.classList.remove('active');
+    });
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) modal.classList.remove('active');
+    });
+  }
+
+  function showOptionsModal() {
+    document.getElementById('qb-opt-analysis').checked = state.options.includeAnalysis;
+    document.getElementById('qb-opt-source').checked = state.options.includeSource;
+    document.getElementById('qb-opt-answer').checked = state.options.includeAnswer;
+    document.getElementById('qb-opt-similar').checked = state.options.includeSimilar;
+    document.getElementById('qb-modal').classList.add('active');
+  }
+
+  function updateToolbar() {
+    var el = document.getElementById('qb-num');
+    if (el) el.textContent = state.selectedIds.size;
+  }
+
+  function clearSelection() {
+    if (state.selectedIds.size === 0) return;
+    if (!confirm('确定清空全部 ' + state.selectedIds.size + ' 道已选题目？')) return;
+    state.selectedIds.clear();
+    saveState();
+    document.querySelectorAll('.qb-checkbox').forEach(function(cb) { cb.checked = false; });
+    updateToolbar();
+  }
+
+  function extractQuestion(heading) {
+    var data = { id: heading.id, title: heading.textContent.replace(/^错题\s*\d+[：:]\s*/, '').trim(), fullTitle: heading.textContent.trim(), html: '', tagName: heading.tagName };
+    var blocks = [];
+    var el = heading.nextElementSibling;
+    while (el && el.tagName !== heading.tagName) {
+      blocks.push(el.outerHTML);
+      el = el.nextElementSibling;
+    }
+    data.html = blocks.join('\n');
+    return data;
+  }
+
+  function getPageSubject() {
+    var h1 = document.querySelector('.markdown-section h1');
+    if (h1) {
+      var t = h1.textContent;
+      if (t.includes('数学')) return '数学';
+      if (t.includes('语文')) return '语文';
+      if (t.includes('英语')) return '英语';
+      if (t.includes('地理')) return '地理';
+      if (t.includes('历史')) return '历史';
+      if (t.includes('政治')) return '政治';
+    }
+    return '';
+  }
+
+  function generateExam() {
+    if (state.selectedIds.size === 0) { alert('请先勾选题目'); return; }
+
+    var allHeadings = document.querySelectorAll('.markdown-section h2, .markdown-section h3, .markdown-section h4');
+    var questions = [];
+    var subject = getPageSubject();
+
+    allHeadings.forEach(function(heading) {
+      var id = heading.id || heading.textContent.trim().replace(/\s+/g, '-').replace(/[：:]/g, '-');
+      if (state.selectedIds.has(id)) {
+        questions.push(extractQuestion(heading));
+      }
+    });
+
+    if (questions.length === 0) { alert('当前页面没有已选中的题目，请切换到对应学科页面'); return; }
+
+    var now = new Date();
+    var dateStr = now.getFullYear() + '年' + (now.getMonth()+1) + '月' + now.getDate() + '日';
+    var defaultName = (subject || '综合') + '错题组卷 - ' + dateStr;
+    showExamNameModal(questions, subject, defaultName);
+  }
+
+  function showExamNameModal(questions, subject, defaultName) {
+    var overlay = document.createElement('div');
+    overlay.className = 'qb-modal-overlay active';
+    overlay.innerHTML =
+      '<div class="qb-modal" style="min-width:360px;">' +
+      '<h3>生成试卷</h3>' +
+      '<span class="qb-field-label">试卷名称</span>' +
+      '<input type="text" id="qb-exam-name" value="' + defaultName + '" placeholder="请输入试卷名称">' +
+      '<span class="qb-field-label">验证密码</span>' +
+      '<input type="password" id="qb-exam-pwd" placeholder="请输入密码">' +
+      '<p id="qb-pwd-err" style="color:#e74c3c;font-size:12px;display:none;margin-top:0;">密码错误，请重试</p>' +
+      '<div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end;">' +
+      '<button class="qb-btn qb-btn-outline" id="qb-name-cancel">取消</button>' +
+      '<button class="qb-btn qb-btn-primary" id="qb-name-confirm">确认生成</button>' +
+      '</div></div>';
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+    document.getElementById('qb-name-cancel').addEventListener('click', function() { overlay.remove(); });
+    var wrongAttempts = 0;
+    document.getElementById('qb-name-confirm').addEventListener('click', async function() {
+      var pwd = document.getElementById('qb-exam-pwd').value;
+      var err = document.getElementById('qb-pwd-err');
+      var encoder = new TextEncoder();
+      var hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(pwd));
+      var hashArray = Array.from(new Uint8Array(hashBuffer));
+      var hashHex = hashArray.map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+      if (hashHex !== '91b4d142823f7d20c5f08df69122de43f35f057a988d9619f6d3138485c9a203') {
+        wrongAttempts++;
+        if (wrongAttempts >= 2) {
+          var limitModal = document.createElement('div');
+          limitModal.className = 'qb-modal-overlay active';
+          limitModal.innerHTML =
+            '<div class="qb-modal">' +
+            '<h3>提示</h3>' +
+            '<p style="margin:12px 0;color:#e74c3c;font-size:15px;">该功能仅限kfdzcoffee个人使用！</p>' +
+            '<div class="qb-modal-actions">' +
+            '<button class="qb-btn qb-btn-primary" id="qb-limit-close">知道了</button>' +
+            '</div></div>';
+          document.body.appendChild(limitModal);
+          limitModal.addEventListener('click', function(e) { if (e.target === limitModal) limitModal.remove(); });
+          document.getElementById('qb-limit-close').addEventListener('click', function() { limitModal.remove(); });
+          return;
+        } else {
+          err.textContent = '密码错误，请重试';
+        }
+        err.style.display = 'block';
+        return;
+      }
+      err.style.display = 'none';
+      var name = document.getElementById('qb-exam-name').value.trim() || defaultName;
+      overlay.remove();
+      doGenerateExam(questions, subject, name);
+    });
+    document.getElementById('qb-exam-pwd').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') document.getElementById('qb-name-confirm').click();
+    });
+  }
+
+  function doGenerateExam(questions, subject, name) {
+    var now = new Date();
+    var dateStr = now.getFullYear() + '年' + (now.getMonth()+1) + '月' + now.getDate() + '日';
+    var isEnglish = (subject === '英语');
+
+    var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">';
+    html += '<head><meta charset="utf-8"><title>' + name + '</title>';
+    html += '<style>body{font-family:"Microsoft YaHei",SimSun,sans-serif;font-size:14px;line-height:1.8;padding:40px;}h1{text-align:center;font-size:22px;margin-bottom:30px;}h3{font-size:16px;color:#333;margin-top:24px;}p{margin:6px 0;}.passage{background:#f5f7fa;padding:14px 18px;border-left:4px solid #007DFF;margin:10px 0;}.passage-title{font-weight:700;color:#007DFF;margin-bottom:6px;font-size:13px;}.source{color:#999;font-size:12px;}.analysis-section{margin-top:32px;padding-top:16px;border-top:2px solid #4a90d9;}.analysis-section h2{font-size:18px;color:#4a90d9;margin-bottom:12px;}.analysis-item{background:#f9f9f9;padding:10px 14px;border-left:3px solid #4a90d9;margin:8px 0;font-size:13px;}hr{border:none;border-top:1px dashed #ddd;margin:20px 0;}blockquote{color:#666;margin:8px 0;padding-left:12px;border-left:3px solid #ddd;}table{border-collapse:collapse;width:100%;margin:8px 0;}table td,table th{border:1px solid #ddd;padding:6px 10px;}</style>';
+    html += '</head><body>';
+    html += '<h1>' + name + '</h1>';
+    html += '<p style="text-align:center;color:#999;">共 ' + questions.length + ' 题 | 科目：' + (subject||'综合') + ' | 生成时间：' + dateStr + '</p>';
+
+    // 收集所有解析块（后置输出）
+    var allAnalyses = [];
+
+    questions.forEach(function(q, i) {
+      html += '<h3>' + (i+1) + '. ' + q.title + '</h3>';
+
+      var tempDiv = document.createElement('div');
+      tempDiv.innerHTML = q.html;
+      var children = tempDiv.children;
+      var inAnalysis = false, inSimilar = false;
+      var analysisBlocks = [];
+      var hasPassage = false;
+
+      for (var j = 0; j < children.length; j++) {
+        var child = children[j];
+        var text = child.textContent || '';
+        var tag = child.tagName;
+
+        // 英语：检测配套原文（第一个长 blockquote 或 "完整题干" 标记）
+        if (isEnglish && !hasPassage && tag === 'BLOCKQUOTE' && text.length > 60) {
+          html += '<div class="passage"><div class="passage-title">配套原文</div>' + child.innerHTML + '</div>';
+          hasPassage = true;
+          continue;
+        }
+        // 英语："完整题干" 后面的 blockquote 当原文
+        if (isEnglish && !hasPassage && text.includes('完整题干') && tag !== 'BLOCKQUOTE') {
+          var nextBlock = children[j+1];
+          if (nextBlock && nextBlock.tagName === 'BLOCKQUOTE') {
+            html += '<div class="passage"><div class="passage-title">配套原文</div>' + nextBlock.innerHTML + '</div>';
+            hasPassage = true;
+            j++; // skip the blockquote
+          }
+          continue;
+        }
+
+        if (text.includes('错因分析') || text.includes('正确解法') || text.includes('关键步骤') ||
+            text.includes('错误原因') || text.includes('词汇积累') || text.includes('同类词') ||
+            text.includes('评分明细') || text.includes('错因逐条')) {
+          inAnalysis = true;
+        }
+        if (text.includes('同类题巩固') || text.includes('同类题警示')) {
+          inSimilar = true;
+          // 同类题警示也放入解析
+          analysisBlocks.push(child.outerHTML);
+          continue;
+        }
+
+        if (text.includes('正确答案') || text.includes('手写答案')) {
+          if (state.options.includeAnswer) {
+            if (inAnalysis) analysisBlocks.push(child.outerHTML);
+            else html += child.outerHTML;
+          }
+          continue;
+        }
+
+        if ((text.includes('**来源**') || text.includes('录入日期') || text.includes('录入时间') ||
+             text.includes('文章主题')) && (child.tagName === 'BLOCKQUOTE' || text.includes('**来源**'))) {
+          if (state.options.includeSource) {
+            html += '<p class="source">' + child.innerHTML + '</p>';
+          }
+          continue;
+        }
+
+        if (inAnalysis) {
+          if (state.options.includeAnalysis) {
+            analysisBlocks.push(child.outerHTML);
+          }
+        } else {
+          html += child.outerHTML;
+        }
+      }
+
+      if (analysisBlocks.length > 0) {
+        allAnalyses.push({ title: q.fullTitle, blocks: analysisBlocks });
+      }
+
+      html += '<hr>';
+    });
+
+    // 解析后置：所有题目的解析统一放在最后
+    if (state.options.includeAnalysis && allAnalyses.length > 0) {
+      html += '<div class="analysis-section">';
+      html += '<h2>参考答案与解析</h2>';
+      allAnalyses.forEach(function(a, idx) {
+        html += '<h4>' + (idx+1) + '. ' + a.title + '</h4>';
+        a.blocks.forEach(function(b) {
+          html += '<div class="analysis-item">' + b + '</div>';
+        });
+      });
+      html += '</div>';
+    }
+
+    html += '</body></html>';
+
+    var blob = new Blob(['\ufeff' + html], { type: 'application/msword;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = name.replace(/[\/:*?"<>|]/g, '_') + '.doc';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // Initialize
+  loadState();
+})();
+</script>
+
+</body>
+</html>
