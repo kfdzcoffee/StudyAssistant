@@ -62,14 +62,22 @@ class Workspace {
     }
 
     if (confirmGate) {
+      const baseNew = String(text || '').replace(/^\uFEFF/, '');
       return confirmGate.request({
         tool: 'write_file', target: rel, summary: `写入文件 ${rel}`, args: { path: rel },
-        oldContent, newContent: text.replace(/^\uFEFF/, '')
+        oldContent, newContent: baseNew
       }).then((r) => {
         if (!r.approved) return { ok: false, cancelled: true, path: rel };
+        // 用户可在确认弹窗中直接修改 AI 生成的内容，写入修改后的内容
+        let finalText = text;
+        if (r.editedContent && String(r.editedContent) !== baseNew) {
+          finalText = String(r.editedContent);
+          if (finalText.charCodeAt(0) === 0xFEFF) finalText = finalText.slice(1);
+          if (isMd) finalText = '\uFEFF' + finalText;
+        }
         fs.mkdirSync(path.dirname(fp), { recursive: true });
-        fs.writeFileSync(fp, text, 'utf8');
-        return { ok: true, path: rel, size: text.length };
+        fs.writeFileSync(fp, finalText, 'utf8');
+        return { ok: true, path: rel, size: finalText.length };
       });
     }
     fs.mkdirSync(path.dirname(fp), { recursive: true });
@@ -92,14 +100,22 @@ class Workspace {
     const writeText = isMd ? '\uFEFF' + (newContent.replace(/^\uFEFF/, '')) : newContent;
 
     if (confirmGate) {
+      const baseNew = String(newContent || '').replace(/^\uFEFF/, '');
       return confirmGate.request({
         tool: 'append_to_file', target: rel, summary: `追加内容到 ${rel}`,
-        args: { path: rel }, oldContent, newContent: newContent.replace(/^\uFEFF/, '')
+        args: { path: rel }, oldContent, newContent: baseNew
       }).then((r) => {
         if (!r.approved) return { ok: false, cancelled: true, path: rel };
+        // 用户可在确认弹窗中直接修改追加后的完整内容，写入修改后的内容
+        let finalContent = baseNew;
+        if (r.editedContent && String(r.editedContent) !== baseNew) {
+          finalContent = String(r.editedContent);
+          if (finalContent.charCodeAt(0) === 0xFEFF) finalContent = finalContent.slice(1);
+        }
+        const writeFinal = isMd ? '\uFEFF' + finalContent : finalContent;
         fs.mkdirSync(path.dirname(fp), { recursive: true });
-        fs.writeFileSync(fp, writeText, 'utf8');
-        return { ok: true, path: rel, appended: text.length };
+        fs.writeFileSync(fp, writeFinal, 'utf8');
+        return { ok: true, path: rel, appended: finalContent.length };
       });
     }
     fs.mkdirSync(path.dirname(fp), { recursive: true });
@@ -122,13 +138,21 @@ class Workspace {
 
     const summary = `新建科目「${subject}」：创建 ${rel}，并注册到 _sidebar.md 与 README.md`;
     if (confirmGate) {
+      const baseNew = String(text || '').replace(/^\uFEFF/, '');
       return confirmGate.request({
         tool: 'create_subject', target: rel, summary, args: { subject },
-        oldContent: null, newContent: text
+        oldContent: null, newContent: baseNew
       }).then((r) => {
         if (!r.approved) return { ok: false, cancelled: true, path: rel };
+        // 用户可在确认弹窗中直接修改科目档案内容
+        let finalText = text;
+        if (r.editedContent && String(r.editedContent) !== baseNew) {
+          finalText = String(r.editedContent);
+          if (finalText.charCodeAt(0) === 0xFEFF) finalText = finalText.slice(1);
+          if (isMd) finalText = '\uFEFF' + finalText;
+        }
         fs.mkdirSync(path.dirname(fp), { recursive: true });
-        fs.writeFileSync(fp, writeText, 'utf8');
+        fs.writeFileSync(fp, finalText, 'utf8');
         this._touchSidebar(sidebarAdd);
         this._touchReadme(readmeAdd, readmeAdd2, subject);
         return { ok: true, path: rel, sidebar: true, readme: true };

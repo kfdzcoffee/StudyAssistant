@@ -1,8 +1,8 @@
 {
   "name": "study-helper",
   "productName": "学习助手",
-  "version": "1.8.8",
-  "description": "AI 驱动的错题整理与高考复习助手桌面应用（集成 DeepSeek / Kimi / Claude）",
+  "version": "1.9.1",
+  "description": "AI 驱动的错题整理与高考复习助手桌面应用（支持 DeepSeek / Kimi / Claude / 本地 Ollama）",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

@@ -543,3 +543,20 @@ input, select, textarea { border-radius: 10px; }
 /* 整条顶栏作为窗口拖拽区；右侧预留系统 最小化/最大化/关闭 按钮空间 */
 .topbar { -webkit-app-region: drag; padding-right: 150px; user-select: none; }
 .topbar button, .topbar input, .topbar select, .topbar .btn-mini { -webkit-app-region: no-drag; }
+
+/* ===== 错题统计：删除按钮 ===== */
+.ss-item-row { display: flex; align-items: center; gap: 6px; }
+.ss-item-row .ss-item { flex: 1; }
+.ss-del { flex: none; width: 24px; height: 24px; padding: 0; border: none; background: transparent; color: var(--text-3); font-size: 13px; cursor: pointer; border-radius: 6px; opacity: .6; }
+.ss-del:hover { opacity: 1; background: rgba(239, 68, 68, .15); color: #ef4444; }
+
+/* ===== 确认弹窗：可编辑 AI 生成内容 ===== */
+.confirm-edit-field { margin-top: 12px; }
+.confirm-edit-field label { display: block; font-size: 13px; color: var(--text-2); margin-bottom: 6px; }
+.confirm-edit-field .editor { width: 100%; min-height: 200px; font-size: 12.5px; font-family: ui-monospace, Consolas, 'Courier New', monospace; }
+
+/* ===== 更新下载进度弹窗 ===== */
+.dl-status { font-size: 14.5px; font-weight: 600; color: var(--text-1); margin-bottom: 14px; }
+.dl-bar-wrap { height: 14px; background: var(--border); border-radius: 8px; overflow: hidden; }
+.dl-bar { height: 100%; width: 0%; border-radius: 8px; background: linear-gradient(90deg, var(--accent-1), var(--accent-3)); transition: width .18s ease; }
+.dl-info { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 13px; color: var(--text-1); }

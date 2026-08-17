@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, dialog, safeStorage, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, dialog, safeStorage, shell, net } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -13,7 +13,7 @@ const { createTools } = require('./src/main/ai/tools');
 const ocr = require('./src/main/ocr');
 const TokenUsage = require('./src/main/token-usage');
 const { checkDocsify, checkDocsifyPath, buildDocsify, applyExamPassword } = require('./src/main/builder');
-const { parseProfile, saveProfile, uploadProfileImage, subjectStats, updateReadmeStats, searchErrors } = require('./src/main/site');
+const { parseProfile, saveProfile, uploadProfileImage, subjectStats, updateReadmeStats, searchErrors, deleteError, syncSidebar } = require('./src/main/site');
 const { exportZip, inspectZip, importZip } = require('./src/main/data');
 
 let win = null;
@@ -76,7 +76,9 @@ async function runAiTask(task) {
   const emit = (ev) => { if (win && !win.isDestroyed()) win.webContents.send('agent:event', ev); };
 
   let provider = cfg.providers[task.providerId || cfg.activeProvider];
-  if (!provider || !provider.enabled || !provider.apiKey) {
+  // 本地服务（如 localhost / 127.0.0.1）不强制要求 API Key
+  const isLocal = provider && /localhost|127\.0\.0\.1/.test(String(provider.baseUrl || ''));
+  if (!provider || !provider.enabled || (!provider.apiKey && !isLocal)) {
     throw new Error('请先在「设置」中启用并配置 AI 提供商');
   }
   // 去除 API Key 首尾空白，避免复制粘贴带入空格导致 401
@@ -142,7 +144,9 @@ function registerIpc() {
     // 优先用表单当前填写的值测试（未保存也能测），缺失字段回退到已保存配置
     const p = Object.assign({}, saved, formCfg || {});
     if (p.apiKey) p.apiKey = String(p.apiKey).trim();
-    if (!p.apiKey) return { ok: false, message: '未填写 API Key' };
+    // 本地服务（如 localhost / 127.0.0.1）无需 API Key
+    const isLocal = p && /localhost|127\.0\.0\.1/.test(String(p.baseUrl || ''));
+    if (!p.apiKey && !isLocal) return { ok: false, message: '未填写 API Key' };
     try {
       const { testConnection } = require('./src/main/ai/adapters');
       const latency = await testConnection(p);
@@ -179,6 +183,16 @@ function registerIpc() {
   // 错题全文搜索（含题目）
   ipcMain.handle('stats:search', (e, query) => {
     try { return { ok: true, matches: searchErrors(workspace, query) }; }
+    catch (e) { return { ok: false, message: e.message }; }
+  });
+  // 删除错题（移除档案中的条目并更新侧边栏）
+  ipcMain.handle('stats:delete', (e, { file, n }) => {
+    try { return deleteError(workspace, String(file || ''), Number(n) || 0); }
+    catch (err) { return { ok: false, message: err.message }; }
+  });
+  // 同步侧边栏（录入/删除后重建各科错题记录列表）
+  ipcMain.handle('stats:sync-sidebar', () => {
+    try { return syncSidebar(workspace); }
     catch (e) { return { ok: false, message: e.message }; }
   });
 
@@ -496,19 +510,40 @@ function registerIpc() {
 
   // ---------- 远程更新（GitHub Releases） ----------
   const GITHUB_REPO = 'kfdzcoffee/StudyAssistant';
+  // 用 Electron net（Chromium 网络栈）请求，走系统代理/证书，避免 Node https 的证书验证问题
   const httpsGet = (url) => new Promise((resolve, reject) => {
-    const https = require('https');
-    https.get(url, { headers: { 'User-Agent': 'StudyAssistant' } }, (res) => {
-      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        return httpsGet(res.headers.location).then(resolve, reject);
-      }
+    const req = net.request(url);
+    req.setHeader('User-Agent', 'StudyAssistant');
+    // 绕过 HTTP 缓存，确保每次检查都获取服务器最新的 version.json
+    req.setHeader('Cache-Control', 'no-cache');
+    req.setHeader('Pragma', 'no-cache');
+    req.on('response', (res) => {
       const chunks = [];
       res.on('data', (c) => chunks.push(c));
       res.on('end', () => resolve(Buffer.concat(chunks)));
-    }).on('error', reject);
+    });
+    req.on('error', reject);
+    req.end();
   });
-  // 检查更新：读取 GitHub Releases 最新版
+  // 检查更新：优先读取官网 version.json，失败则回退 GitHub Releases
   ipcMain.handle('update:check', async () => {
+    // 1) 官网 version.json
+    try {
+      const body = await httpsGet('https://studyassistant.kfdzcoffee.cn/version.json');
+      const j = JSON.parse(body.toString('utf8'));
+      if (j && j.version) {
+        return {
+          ok: true,
+          version: String(j.version).replace(/^v/i, ''),
+          name: j.app || '',
+          notes: j.notes || '',
+          url: j.url || '',
+          source: 'website',
+          published: ''
+        };
+      }
+    } catch (e) { /* 官网不可用，走 GitHub 回退 */ }
+    // 2) GitHub Releases 回退
     try {
       const body = await httpsGet('https://api.github.com/repos/' + GITHUB_REPO + '/releases/latest');
       const j = JSON.parse(body.toString('utf8'));
@@ -520,22 +555,42 @@ function registerIpc() {
         name: j.name || '',
         notes: j.body || '',
         url: asset ? asset.browser_download_url : (j.html_url || ''),
+        source: 'github',
         published: j.published_at || ''
       };
     } catch (e) {
-      return { ok: false, message: e.message || '网络错误，无法访问 GitHub' };
+      return { ok: false, message: e.message || '网络错误，无法访问更新源' };
     }
   });
-  // 下载新版安装包并运行安装程序
+  // 下载新版安装包（带进度推送），完成后自动运行安装程序
   ipcMain.handle('update:apply', async (e, url) => {
     try {
       if (!url) return { ok: false, message: '缺少下载地址' };
-      const body = await httpsGet(url);
+      const emit = (ev) => { if (win && !win.isDestroyed()) win.webContents.send('update:progress', ev); };
       const fileName = decodeURIComponent(url.split('/').pop()) || 'study-helper-update.exe';
       const target = path.join(app.getPath('temp'), fileName);
+      const body = await new Promise((resolve, reject) => {
+        const req = net.request(url);
+        req.setHeader('User-Agent', 'StudyAssistant');
+        req.on('response', (res) => {
+          if (res.statusCode >= 400) { reject(new Error('HTTP ' + res.statusCode)); res.resume(); return; }
+          const total = Number(res.headers['content-length']) || 0;
+          let received = 0;
+          const chunks = [];
+          res.on('data', (c) => {
+            chunks.push(c); received += c.length;
+            emit({ status: 'downloading', received, total, percent: total ? Math.round((received / total) * 100) : 0 });
+          });
+          res.on('end', () => resolve(Buffer.concat(chunks)));
+          res.on('error', reject);
+        });
+        req.on('error', reject);
+        req.end();
+      });
+      emit({ status: 'done', received: body.length, total: body.length, percent: 100 });
       fs.writeFileSync(target, body);
       shell.openPath(target);
-      return { ok: true, path: target };
+      return { ok: true, path: target, size: body.length };
     } catch (e) {
       return { ok: false, message: e.message || '下载失败' };
     }

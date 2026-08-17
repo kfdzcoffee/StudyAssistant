@@ -74,31 +74,55 @@ function pickTemperature(cfg) {
 // ---- OpenAI 兼容 ----
 async function chatOpenAI(cfg, messages, tools, { signal, onUsage } = {}) {
   const base = (cfg.baseUrl || 'https://api.deepseek.com').replace(/\/+$/, '');
-  const body = {
-    model: cfg.model,
-    messages,
-    stream: false
+  const isLocal = /localhost|127\.0\.0\.1/.test(String(cfg.baseUrl || ''));
+  const hasTools = !!(tools && tools.length);
+
+  const buildBody = (useTools) => {
+    const body = { model: cfg.model, messages, stream: false };
+    const temperature = pickTemperature(cfg);
+    if (temperature !== undefined) body.temperature = temperature;
+    if (useTools && hasTools) { body.tools = tools; body.tool_choice = 'auto'; }
+    // 本地 Ollama 等思考模型（qwen3 等）：禁用思考模式，避免只输出 reasoning 导致 content 为空或响应极慢
+    if (isLocal) body.enable_thinking = false;
+    return body;
   };
-  const temperature = pickTemperature(cfg);
-  if (temperature !== undefined) body.temperature = temperature;
-  if (tools && tools.length) { body.tools = tools; body.tool_choice = 'auto'; }
-  const data = await httpJson(base + '/chat/completions', {
-    method: 'POST',
-    signal,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: 'Bearer ' + cfg.apiKey
-    },
-    body: JSON.stringify(body)
-  });
-  // 上报 token 用量（用于每日预警统计）
-  if (onUsage && data && data.usage) {
-    const total = data.usage.total_tokens || 0;
-    if (total) onUsage(total);
+
+  const doReq = async (body) => {
+    const data = await httpJson(base + '/chat/completions', {
+      method: 'POST',
+      signal,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + cfg.apiKey
+      },
+      body: JSON.stringify(body)
+    });
+    // 上报 token 用量（用于每日预警统计）
+    if (onUsage && data && data.usage) {
+      const total = data.usage.total_tokens || 0;
+      if (total) onUsage(total);
+    }
+    const msg = data.choices && data.choices[0] && data.choices[0].message;
+    if (!msg) throw new Error('OpenAI 兼容接口返回异常');
+    // 兜底：若 content 为空但模型返回了思考内容（reasoning），提取其结论部分，避免「处理完却无输出」
+    if (!String(msg.content || '').trim() && (msg.reasoning || msg.reasoning_content)) {
+      const rz = String(msg.reasoning || msg.reasoning_content || '');
+      const lines = rz.split(/\n+/).map((l) => l.trim()).filter(Boolean);
+      msg.content = lines.slice(-3).join('\n') || rz;
+    }
+    return msg;
+  };
+
+  try {
+    return await doReq(buildBody(true));
+  } catch (e) {
+    // 本地模型不支持工具调用（如 Ollama 的 qwen2.5vl 等视觉模型）→ 自动去掉 tools 降级重试一次，
+    // 保证至少能返回文本内容（不再报 HTTP 400 does not support tools）
+    if (hasTools && /does not support tools/i.test(String((e && e.message) || ''))) {
+      return await doReq(buildBody(false));
+    }
+    throw e;
   }
-  const msg = data.choices && data.choices[0] && data.choices[0].message;
-  if (!msg) throw new Error('OpenAI 兼容接口返回异常');
-  return msg;
 }
 
 // ---- Anthropic (Claude) ----

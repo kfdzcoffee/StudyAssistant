@@ -388,16 +388,33 @@
 
     setStatus(statusEl, 'done');
     if (res.ok) {
-      if (resultEl) md(resultEl, res.content);
+      const c = String(res.content || '').trim();
+      if (c) {
+        if (resultEl) md(resultEl, c);
+      } else if (state.didWrite) {
+        if (resultEl) resultEl.innerHTML = '<div class="proc-line ok">✅ 内容已写入档案（AI 未返回文本，可到「档案编辑」查看修改）</div>';
+        toast('✅ 已写入档案', 3000);
+      } else {
+        if (resultEl) resultEl.innerHTML = '<div class="proc-line err">✘ AI 未返回内容，请重试或更换模型 / 检查本地服务</div>';
+        toast('AI 未返回内容', 4000);
+      }
       renderPostGit(res, mode, resultEl);
+      // 需要写文件的模式却未写入（常见于本地模型不支持工具调用）→ 提示用户
+      if (!state.didWrite && mode !== 'chat' && mode !== 'learn-notes' && resultEl) {
+        const tip = document.createElement('div');
+        tip.className = 'proc-line';
+        tip.innerHTML = '<span class="hint">💡 本次未写入档案。若该模型不支持工具调用，可复制上方内容，或用「加入待录入区」草稿模式生成后统一写入。</span>';
+        resultEl.appendChild(tip);
+      }
     } else {
       if (resultEl) resultEl.innerHTML = '<div class="proc-line err">✘ ' + escapeHtml(res.message) + '</div>';
       toast('任务失败：' + res.message, 4000);
     }
     if (mode !== 'chat' && resultEl) switchDone(resultEl);
-    // 写文件后刷新首页题目统计
+    // 写文件后刷新首页题目统计与侧边栏
     if (res.ok && state.didWrite && mode !== 'chat') {
       api.site.refreshStats().catch(() => {});
+      api.site.syncSidebar().catch(() => {});
     }
     return res;
   }
@@ -467,6 +484,16 @@
     } else {
       renderDiff(diffEl, req.oldContent || '', req.newContent || '');
     }
+    // 写文件类操作：提供可编辑区，让用户直接修改 AI 生成的内容后再确认
+    const editable = ['write_file', 'append_to_file', 'create_subject'].indexOf(req.tool) !== -1;
+    const editField = $('confirm-edit-field');
+    const editEl = $('confirm-edit');
+    if (editable && editField && editEl) {
+      editEl.value = req.newContent || '';
+      editField.classList.remove('hidden');
+    } else if (editField) {
+      editField.classList.add('hidden');
+    }
     $('confirm-modal').classList.remove('hidden');
   }
 
@@ -527,8 +554,11 @@
       state.yesNoResolve(true); state.yesNoResolve = null; hideConfirm(); return;
     }
     const r = state.pendingConfirm;
+    const editField = $('confirm-edit-field');
+    const editEl = $('confirm-edit');
+    const edited = (editField && !editField.classList.contains('hidden') && editEl) ? editEl.value : undefined;
     hideConfirm();
-    if (r) api.app.confirmResponse(r.id, true);
+    if (r) api.app.confirmResponse(r.id, true, edited);
   });
   $('confirm-reject').addEventListener('click', () => {
     if (state.yesNoResolve) {
@@ -583,6 +613,8 @@
       $('confirm-summary').textContent = text;
       const d = $('confirm-diff');
       d.innerHTML = '<div class="hint">该操作由你主动发起，确认后将自动依次执行。</div>';
+      const editField = $('confirm-edit-field');
+      if (editField) editField.classList.add('hidden');
       $('confirm-approve').textContent = '确认执行';
       $('confirm-reject').textContent = '取消';
       $('confirm-modal').classList.remove('hidden');
@@ -1116,6 +1148,7 @@
       toast('✅ 已写入 ' + file + ' · 错题 ' + n);
       ['manual-title', 'manual-source', 'manual-question', 'manual-reason', 'manual-solution', 'manual-answer', 'manual-tip', 'manual-similar'].forEach((i) => $(i).value = '');
       api.site.refreshStats().catch(() => {});
+      api.site.syncSidebar().catch(() => {});
       if (state.currentView === 'archive') refreshTree();
     } else {
       $('manual-status').textContent = '❌ 写入失败';
@@ -1207,6 +1240,7 @@
     renderQueue();
     refreshTree();
     api.site.refreshStats().catch(() => {});
+    api.site.syncSidebar().catch(() => {});
     if (state.didWrite && (await askYesNo('全部录入完成 ✅\n是否现在上传到 GitHub？'))) {
       gitFlowAuto();
     }
@@ -1366,17 +1400,18 @@
   function providerRowHTML(p) {
     const models = (p.models && p.models.length ? p.models : []);
     const opts = models.map((m) => '<option value="' + m.id + '">' + m.name + '</option>').join('');
+    const isLocal = /localhost|127\.0\.0\.1/.test(String(p.baseUrl || ''));
     return '<div class="wiz-provider" data-id="' + p.id + '">' +
       '<div class="wp-head">' +
       '<input type="checkbox" data-f="enabled" ' + (p.enabled ? 'checked' : '') + ' />' +
       '<span>' + (p.name || p.id || '提供商') + '</span>' +
-      '<span class="hint">' + (p.vision ? '🖼 支持图片' : '') + ' · ' + (p.kind === 'anthropic' ? 'Anthropic' : 'OpenAI 兼容') + '</span>' +
+      '<span class="hint">' + (p.vision ? '🖼 支持图片' : '') + ' · ' + (p.kind === 'anthropic' ? 'Anthropic' : 'OpenAI 兼容') + (isLocal ? ' · 🏠 本地' : '') + '</span>' +
       '</div>' +
       '<div class="wp-grid">' +
       '<div class="full"><input data-f="baseUrl" value="' + p.baseUrl + '" placeholder="Base URL" /></div>' +
       '<div class="full"><input data-f="model" value="' + p.model + '" list="models-' + p.id + '" placeholder="模型（可从下拉选择预设）" /></div>' +
       '<datalist id="models-' + p.id + '">' + opts + '</datalist>' +
-      '<div class="full"><input data-f="apiKey" type="password" value="' + (p.apiKey || '') + '" placeholder="API Key（密钥环加密）" /></div>' +
+      '<div class="full"><input data-f="apiKey" type="password" value="' + (p.apiKey || '') + '" placeholder="' + (isLocal ? '本地部署无需填写，留空即可' : 'API Key（密钥环加密）') + '" /></div>' +
       '<div class="full"><input data-f="temperature" value="' + (p.temperature ?? '') + '" placeholder="temperature（留空=模型默认；Kimi K2.6 等仅允许 1）" /></div>' +
       '</div>' +
       '<div style="display:flex;gap:8px;margin-top:8px;align-items:center;">' +
@@ -1473,6 +1508,8 @@
     updateCountdown();
     loadUsers();
     if (!cfg.initialized) showWizard(cfg);
+    // 启动后自动检查更新（仅已初始化时，延迟等界面与版本信息就绪）
+    if (cfg.initialized) setTimeout(checkForUpdateSilent, 2000);
   }
 
   api.app.onConfig(applyConfig);
@@ -1809,8 +1846,24 @@
 
   // ---------- 版本更新内容 ----------
   const VERSION_INFO = {
-    current: 'v1.8.8',
+    current: 'v1.9.1',
     history: [
+      { v: 'v1.9.1', date: '2026-08-17', items: [
+        '本地 AI（Ollama）全面适配：新增「本地」提供商、无需 API Key；思考模型适配（content 为空时自动用思考结果兜底）；不支持工具调用的模型自动降级，不再报错',
+        '确认弹窗可直接编辑 AI 生成的内容后再确认写入',
+        'AI 需要补充信息时会自动弹窗提问并继续任务，不再误判为「完成」',
+        '错题统计新增「删除错题」（二次确认，同步更新侧边栏）',
+        '录入 / 删除错题后自动同步侧边栏（_sidebar.md）'
+      ] },
+      { v: 'v1.9.0', date: '2026-08-14', items: [
+        '新增「本地」AI 提供商：适配本地 AI 模型（Ollama 兼容接口 http://localhost:11434/v1），无需 API Key、数据不出本机',
+        '启动时自动检测新版本：发现新版弹窗提醒，可一键下载安装',
+        '更新下载进度弹窗「下一曲即将奏响！」：实时显示下载进度，可关闭弹窗不中断下载、随时再次打开查看'
+      ] },
+      { v: 'v1.8.9', date: '2026-08-14', items: [
+        '新增「本地」AI 提供商：适配本地 AI 模型（Ollama 兼容接口 http://localhost:11434/v1），无需 API Key、数据不出本机',
+        '启动时自动检测新版本：发现新版弹窗提醒，可一键下载安装'
+      ] },
       { v: 'v1.8.8', date: '2026-08-13', items: [
         '新增「检查新版本」：自动从 GitHub Releases 检测新版并下载安装',
         '使用许可协议链接迁移至 https://studyassistant.kfdzcoffee.cn/legal.html',
@@ -1903,6 +1956,73 @@
     }
     return 0;
   }
+  // ---------- 更新下载进度（下一曲即将奏响） ----------
+  const dlState = { active: false, percent: 0, received: 0, total: 0, status: 'idle', error: '', url: '' };
+  function fmtBytes(n) {
+    if (!n) return '0 B';
+    const u = ['B', 'KB', 'MB', 'GB'];
+    let v = n, i = 0;
+    while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+    return (i ? v.toFixed(1) : v.toFixed(0)) + ' ' + u[i];
+  }
+  function renderDl() {
+    const openBtn = $('dl-open');
+    if (openBtn) openBtn.classList.toggle('hidden', !dlState.active);
+    const bar = $('dl-bar'), pct = $('dl-pct'), size = $('dl-size'), status = $('dl-status');
+    if (bar) bar.style.width = (dlState.percent || 0) + '%';
+    if (pct) pct.textContent = (dlState.percent || 0) + '%';
+    if (size) size.textContent = dlState.total ? fmtBytes(dlState.received) + ' / ' + fmtBytes(dlState.total) : fmtBytes(dlState.received);
+    if (status) {
+      if (dlState.status === 'downloading') status.textContent = '🎶 正在下载新版本…';
+      else if (dlState.status === 'done') status.textContent = '✅ 下载完成，即将启动安装程序！';
+      else if (dlState.status === 'error') status.textContent = '❌ 下载失败：' + (dlState.error || '未知错误');
+      else status.textContent = '正在准备下载…';
+    }
+  }
+  function openDlModal() { renderDl(); const m = $('dl-modal'); if (m) m.classList.remove('hidden'); }
+  function closeDlModal() { const m = $('dl-modal'); if (m) m.classList.add('hidden'); }
+  async function startDownload(url) {
+    dlState.active = true; dlState.url = url || '';
+    dlState.status = 'starting'; dlState.percent = 0; dlState.received = 0; dlState.total = 0; dlState.error = '';
+    renderDl(); openDlModal();
+    const d = await api.update.apply(url).catch((e) => ({ ok: false, message: String((e && e.message) || e) }));
+    if (d && d.ok) { dlState.status = 'done'; dlState.percent = 100; dlState.active = false; }
+    else { dlState.status = 'error'; dlState.error = (d && d.message) || '未知错误'; dlState.active = false; }
+    renderDl();
+    if (d && d.ok) toast('✅ 已启动安装程序，请按向导完成安装', 5000);
+    else await askYesNo('下载/启动失败：' + dlState.error + '\n\n可前往 GitHub 手动下载：\nhttps://github.com/kfdzcoffee/StudyAssistant/releases');
+    return d;
+  }
+  // 主进程推送下载进度
+  if (api.update.onProgress) api.update.onProgress((ev) => {
+    if (!ev) return;
+    if (ev.status) dlState.status = ev.status;
+    if (typeof ev.percent === 'number') dlState.percent = ev.percent;
+    if (typeof ev.received === 'number') dlState.received = ev.received;
+    if (typeof ev.total === 'number') dlState.total = ev.total;
+    renderDl();
+  });
+  (function () {
+    const c = $('dl-close'), c2 = $('dl-close2'), o = $('dl-open');
+    if (c) c.addEventListener('click', closeDlModal);
+    if (c2) c2.addEventListener('click', closeDlModal);
+    if (o) o.addEventListener('click', () => {
+      if (!dlState.active) { toast('当前没有正在进行的下载任务'); return; }
+      openDlModal();
+    });
+  })();
+
+  // 启动时静默检查更新：有新版则弹窗提醒
+  async function checkForUpdateSilent() {
+    const r = await api.update.check().catch(() => null);
+    if (!r || !r.ok) return; // 检查失败不打扰
+    const curVer = String(VERSION_INFO.current || '').replace(/^v/i, '');
+    if (compareVersions(r.version, curVer) <= 0) return; // 已是最新
+    const notes = String(r.notes || '').slice(0, 500);
+    if (await askYesNo('🎉 发现新版本：v' + r.version + '（当前 v' + curVer + '）\n\n' + (notes ? '更新说明：\n' + notes + '\n\n' : '') + '是否下载并安装新版？')) {
+      await startDownload(r.url);
+    }
+  }
   $('update-check').addEventListener('click', async () => {
     const st = $('update-status');
     if (st) st.textContent = '⏳ 正在检查更新…';
@@ -1914,7 +2034,7 @@
     }
     const curVer = String(VERSION_INFO.current || '').replace(/^v/i, '');
     if (compareVersions(r.version, curVer) <= 0) {
-      if (st) st.textContent = '✅ 已是最新版本（v' + curVer + '）';
+      if (st) st.textContent = '✅ 已是最新版本（当前 v' + curVer + '，服务器 v' + r.version + '）';
       toast('✅ 已是最新版本（v' + curVer + '）', 4000);
       return;
     }
@@ -1925,14 +2045,9 @@
       return;
     }
     if (st) st.textContent = '⏳ 正在下载新版并启动安装程序…';
-    const d = await api.update.apply(r.url).catch(() => null);
-    if (!d || !d.ok) {
-      if (st) st.textContent = '❌ 下载/启动失败：' + ((d && d.message) || '未知错误');
-      await askYesNo('下载/启动失败：' + ((d && d.message) || '未知错误') + '\n\n可前往 GitHub 手动下载：\nhttps://github.com/kfdzcoffee/StudyAssistant/releases');
-      return;
-    }
-    if (st) st.textContent = '✅ 已启动安装程序，请按向导完成安装';
-    toast('✅ 已启动安装程序，请按向导完成安装', 5000);
+    const d = await startDownload(r.url);
+    if (d && d.ok) { if (st) st.textContent = '✅ 已启动安装程序，请按向导完成安装'; }
+    else if (st) st.textContent = '❌ 下载/启动失败：' + ((d && d.message) || '未知错误');
   });
 
   // ---------- Git 授权配置 ----------
@@ -2153,7 +2268,7 @@
     }
     // 步骤5：阅读协议须先勾选同意
     if (wizStep === 5 && !$('wiz-agree').checked) {
-      toast('请先阅读并同意《咖啡豆子coffee的小站访客及友链协议》', 4000);
+      toast('请先阅读并同意《学习助手-Study Assistant 开源终端软件使用许可协议》', 4000);
       return;
     }
     setWizStep(Math.min(6, wizStep + 1));
@@ -2199,7 +2314,7 @@
   });
   $('wiz-done').addEventListener('click', async () => {
     if (!$('wiz-agree').checked) {
-      toast('请先阅读并同意《咖啡豆子coffee的小站访客及友链协议》', 4000);
+      toast('请先阅读并同意《学习助手-Study Assistant 开源终端软件使用许可协议》', 4000);
       return;
     }
     const cfg = JSON.parse(JSON.stringify(state.config));
@@ -2410,7 +2525,8 @@
       const errs = s.errors.map((e) => {
         const key = s.file + '#' + e.n;
         return '<div class="ss-item-row"><input type="checkbox" class="ss-cb" data-key="' + key + '" ' +
-          (state.examSel.has(key) ? 'checked' : '') + ' title="加入组卷" /><span class="ss-item" data-key="' + key + '">错题 ' + e.n + '：' + escapeHtml(e.title) + '</span></div>';
+          (state.examSel.has(key) ? 'checked' : '') + ' title="加入组卷" /><span class="ss-item" data-key="' + key + '">错题 ' + e.n + '：' + escapeHtml(e.title) + '</span>' +
+          '<button type="button" class="ss-del" data-key="' + key + '" title="删除该错题">🗑</button></div>';
       }).join('') || '<div class="ss-empty">暂无错题</div>';
       const essays = s.essays.map((e) => '<div class="ss-item" data-essay="' + encodeURIComponent(e.title) + '">' + (e.n ? '作文 ' + e.n + '：' : '') + escapeHtml(e.title) + '</div>').join('') || '<div class="ss-empty">暂无作文</div>';
       card.innerHTML = '<div class="ss-head"><span>' + escapeHtml(s.subject) + '</span><span class="ss-count">错题 ' + s.errors.length + ' · 作文 ' + s.essays.length + (s.date ? ' · 更新 ' + escapeHtml(s.date) : '') + '</span></div>' +
@@ -2426,6 +2542,26 @@
         it.addEventListener('click', () => {
           const m = it.dataset.key.match(/^(.*)#(\d+)$/);
           openDetail(m[1], Number(m[2]));
+        });
+      });
+      card.querySelectorAll('.ss-del').forEach((btn) => {
+        btn.addEventListener('click', async (ev) => {
+          ev.stopPropagation();
+          const m = btn.dataset.key.match(/^(.*)#(\d+)$/);
+          if (!m) return;
+          const file = m[1], n = Number(m[2]);
+          if (!(await askYesNo('确定要删除错题 ' + n + '吗？\n将从「' + file + '」中删除该条目。'))) return;
+          if (!(await askYesNo('再次确认：确定永久删除错题 ' + n + '？\n此操作不可恢复！'))) return;
+          const r = await api.site.del(file, n);
+          if (r.ok) {
+            toast('✅ 已删除错题 ' + n, 3000);
+            loadStats();
+            refreshTree();
+            api.site.refreshStats().catch(() => {});
+            api.site.syncSidebar().catch(() => {});
+          } else {
+            toast('删除失败：' + (r.message || ''), 4000);
+          }
         });
       });
       card.querySelectorAll('.ss-item[data-essay]').forEach((it) => {

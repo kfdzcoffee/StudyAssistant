@@ -504,6 +504,8 @@
               <div class="about-info">
                 <div class="about-name">Kfdzcoffee</div>
                 <div class="about-links">
+                  <div class="about-link"><span class="al-label">项目官网</span><a href="#" data-url="https://studyassistant.kfdzcoffee.cn/">studyassistant.kfdzcoffee.cn</a></div>
+                  <div class="about-link"><span class="al-label">项目地址</span><a href="#" data-url="https://github.com/kfdzcoffee/StudyAssistant">github.com/kfdzcoffee/StudyAssistant</a></div>
                   <div class="about-link"><span class="al-label">个人网站</span><a href="#" data-url="https://kfdzcoffee.cn/">kfdzcoffee.cn</a></div>
                   <div class="about-link"><span class="al-label">个人博客</span><a href="#" data-url="https://blog.kfdzcoffee.cn/">blog.kfdzcoffee.cn</a></div>
                   <div class="about-link"><span class="al-label">GitHub</span><a href="#" data-url="https://github.com/kfdzcoffee">github.com/kfdzcoffee</a></div>
@@ -514,8 +516,9 @@
 
             <div class="sec-title">📦 版本信息</div>
             <div class="ws-row">
-              <button class="btn-outline" id="version-open">📦 版本更新内容（当前 v1.8.8）</button>
+              <button class="btn-outline" id="version-open">📦 版本更新内容（当前 v1.9.1）</button>
               <button class="btn-primary" id="update-check">🔄 检查新版本</button>
+              <button class="btn-outline hidden" id="dl-open">📥 下载进度</button>
             </div>
             <p class="hint" id="update-status">自动从 GitHub Releases 检查并获取新版安装包。</p>
           </div>
@@ -550,7 +553,7 @@
 
       <footer class="app-footer">
         <span>Copyright © 2024-2026 Kfdzcoffee. All Rights Reserved.</span>
-        <span class="footer-legal">本软件适用于 <a href="#" id="footer-legal">《咖啡豆子coffee的小站访客及友链协议》</a></span>
+        <span class="footer-legal">本软件适用于 <a href="#" id="footer-legal">《学习助手-Study Assistant 开源终端软件使用许可协议》</a></span>
       </footer>
     </main>
   </div>
@@ -739,11 +742,30 @@
     <div class="modal modal-lg">
       <div class="modal-head"><span>📦 版本更新内容</span><button class="modal-close" id="version-close">✕</button></div>
       <div class="wizard-body">
-        <div class="version-now">当前版本 <b id="version-now-tag">v1.8.8</b> · Copyright © 2024-2026 Kfdzcoffee</div>
+        <div class="version-now">当前版本 <b id="version-now-tag">v1.9.1</b> · Copyright © 2024-2026 Kfdzcoffee</div>
         <div id="version-list" class="version-list"></div>
       </div>
       <div class="modal-actions">
         <button class="btn-outline" id="version-close2">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 更新下载进度 ===== -->
+  <div id="dl-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-head"><span>🎵 下一曲即将奏响！</span><button class="modal-close" id="dl-close">✕</button></div>
+      <div class="wizard-body">
+        <div class="dl-status" id="dl-status">正在下载新版本…</div>
+        <div class="dl-bar-wrap"><div class="dl-bar" id="dl-bar"></div></div>
+        <div class="dl-info">
+          <span id="dl-pct">0%</span>
+          <span class="hint" id="dl-size"></span>
+        </div>
+        <p class="hint" id="dl-tip">关闭此弹窗不会中断下载，可随时点击「📥 下载进度」按钮再次打开查看。</p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-outline" id="dl-close2">后台下载（关闭弹窗）</button>
       </div>
     </div>
   </div>
@@ -899,6 +921,10 @@
       <div class="modal-summary" id="confirm-summary"></div>
       <div class="modal-diff-wrap">
         <div class="md-body" id="confirm-diff"></div>
+      </div>
+      <div class="confirm-edit-field hidden" id="confirm-edit-field">
+        <label for="confirm-edit">✏️ 可在此直接修改 AI 生成的内容（确认后将写入修改后的内容）</label>
+        <textarea id="confirm-edit" class="editor" spellcheck="false"></textarea>
       </div>
       <div class="modal-actions">
         <button class="btn-outline" id="confirm-reject">拒绝</button>
@@ -1058,15 +1084,15 @@
           <div class="agree-notice">
             <div class="agree-icon">📜</div>
             <div>
-              <h3>本软件适用于《咖啡豆子coffee的小站访客及友链协议》</h3>
-              <p>使用本软件即表示您知悉并同意：本软件的使用、所提供的服务及友链相关事项，均受《咖啡豆子coffee的小站访客及友链协议》之约束。请仔细阅读下方协议全文后再行确认。</p>
+              <h3>本软件适用于《学习助手-Study Assistant 开源终端软件使用许可协议》</h3>
+              <p>使用本软件即表示您知悉并同意：本软件的使用及所提供的服务，均受《学习助手-Study Assistant 开源终端软件使用许可协议》之约束。请仔细阅读下方协议全文后再行确认。</p>
             </div>
           </div>
           <div class="agreement-box">
             <iframe id="wiz-legal" class="wiz-legal" src="https://studyassistant.kfdzcoffee.cn/legal.html" title="Legal - Kfdzcoffee"></iframe>
             <p class="hint" style="margin-top:6px;">若上方无法显示，请 <a href="#" id="wiz-legal-open">在新窗口打开协议网页</a>。</p>
           </div>
-          <label class="agree-check"><input type="checkbox" id="wiz-agree" /> 我已阅读并同意《咖啡豆子coffee的小站访客及友链协议》，并确认本软件适用该协议</label>
+          <label class="agree-check"><input type="checkbox" id="wiz-agree" /> 我已阅读并同意《学习助手-Study Assistant 开源终端软件使用许可协议》，并确认本软件适用该协议</label>
         </div>
         <!-- 步骤6：完成 -->
         <div id="wiz-step6" class="hidden">

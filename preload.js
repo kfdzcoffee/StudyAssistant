@@ -41,7 +41,9 @@ contextBridge.exposeInMainWorld('api', {
     uploadImage: (data) => ipcRenderer.invoke('site:upload-image', data),
     refreshStats: () => ipcRenderer.invoke('site:refresh-stats'),
     stats: () => ipcRenderer.invoke('stats:list'),
-    search: (query) => ipcRenderer.invoke('stats:search', query)
+    search: (query) => ipcRenderer.invoke('stats:search', query),
+    del: (file, n) => ipcRenderer.invoke('stats:delete', { file, n }),
+    syncSidebar: () => ipcRenderer.invoke('stats:sync-sidebar')
   },
   data: {
     export: (opts) => ipcRenderer.invoke('data:export', opts),
@@ -73,7 +75,8 @@ contextBridge.exposeInMainWorld('api', {
   },
   update: {
     check: () => ipcRenderer.invoke('update:check'),
-    apply: (url) => ipcRenderer.invoke('update:apply', url)
+    apply: (url) => ipcRenderer.invoke('update:apply', url),
+    onProgress: (cb) => ipcRenderer.on('update:progress', (e, ev) => cb(ev))
   },
   app: {
     onConfig: (cb) => ipcRenderer.on('app:config', (e, c) => cb(c)),
@@ -81,7 +84,7 @@ contextBridge.exposeInMainWorld('api', {
     onConfirmRequest: (cb) => ipcRenderer.on('confirm-request', (e, req) => cb(req)),
     onAskRequest: (cb) => ipcRenderer.on('ask-request', (e, req) => cb(req)),
     onPreviewUrl: (cb) => ipcRenderer.on('preview:url', (e, u) => cb(u)),
-    confirmResponse: (id, approved) => ipcRenderer.invoke('confirm-response', { id, approved }),
+    confirmResponse: (id, approved, editedContent) => ipcRenderer.invoke('confirm-response', { id, approved, editedContent }),
     askResponse: (id, answer) => ipcRenderer.invoke('ask-response', { id, answer }),
     setTitleBarOverlay: (o) => ipcRenderer.invoke('window:set-overlay', o),
     toggleMaximize: () => ipcRenderer.invoke('window:toggle-maximize'),

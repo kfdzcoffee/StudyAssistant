@@ -8,11 +8,11 @@ class ConfirmGate {
   }
 
   init(ipcMain) {
-    ipcMain.handle('confirm-response', (e, { id, approved }) => {
+    ipcMain.handle('confirm-response', (e, { id, approved, editedContent }) => {
       const resolve = this._pending.get(id);
       if (resolve) {
         this._pending.delete(id);
-        resolve({ approved: !!approved, id });
+        resolve({ approved: !!approved, id, editedContent });
       }
       return true;
     });

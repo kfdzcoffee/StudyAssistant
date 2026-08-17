@@ -212,4 +212,84 @@ function searchErrors(ws, query) {
   return matches;
 }
 
-module.exports = { parseProfile, saveProfile, uploadProfileImage, subjectStats, updateReadmeStats, searchErrors };
+// ===== 删除错题（从档案移除该块，并更新侧边栏） =====
+function deleteError(ws, file, n) {
+  const md = readMd(ws, file);
+  if (md == null) return { ok: false, message: '文件不存在: ' + file };
+  const lines = md.split('\n');
+  const headRe = new RegExp('^#{2,4}\\s*错题\\s*' + n + '\\s*[：:]');
+  let start = -1;
+  for (let i = 0; i < lines.length; i++) if (headRe.test(lines[i])) { start = i; break; }
+  if (start === -1) return { ok: false, message: '未找到错题 ' + n };
+  const lvl = lines[start].match(/^#+/)[0].length;
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i++) {
+    const m = lines[i].match(/^(#{1,4})\s+/);
+    if (m && m[1].length <= lvl) { end = i; break; }
+  }
+  let kept = lines.slice(0, start).concat(lines.slice(end));
+  // 清理：合并连续分隔线 / 空行
+  const cleaned = [];
+  let prevHr = false, prevBlank = false;
+  for (const ln of kept) {
+    const isHr = /^\s*([-*_])\s*\1{2,}\s*$/.test(ln);
+    const isBlank = ln.trim() === '';
+    if ((isHr && (prevHr || prevBlank)) || (isBlank && prevBlank)) continue;
+    cleaned.push(ln);
+    prevHr = isHr; prevBlank = isBlank;
+  }
+  while (cleaned.length && cleaned[0].trim() === '') cleaned.shift();
+  while (cleaned.length && cleaned[cleaned.length - 1].trim() === '') cleaned.pop();
+  writeMd(ws, file, cleaned.join('\n').trim() + '\n');
+  // 更新侧边栏：移除对应条目
+  const sb = readMd(ws, '_sidebar.md');
+  if (sb != null) {
+    const linkRe = new RegExp('^\\s*\\*\\s*\\[错题\\s*' + n + '\\s*[：:][^\\]]*\\]\(' + esc(file) + '#[^)]*\\)\\s*$', 'gm');
+    const nsb = sb.replace(linkRe, '').replace(/\n{3,}/g, '\n\n');
+    writeMd(ws, '_sidebar.md', nsb.trim() + '\n');
+  }
+  return { ok: true, file, n };
+}
+
+// ===== 同步侧边栏：扫描各科错题，重建「错题记录」列表 =====
+function syncSidebar(ws) {
+  const sb = readMd(ws, '_sidebar.md');
+  if (sb == null) return { ok: false, message: '_sidebar.md 不存在' };
+  const stats = subjectStats(ws);
+  const lines = sb.split('\n');
+  const out = [];
+  let i = 0;
+  while (i < lines.length) {
+    if (/^\* /.test(lines[i])) {
+      const block = [lines[i]];
+      let j = i + 1;
+      while (j < lines.length && !/^\* /.test(lines[j])) { block.push(lines[j]); j++; }
+      const subject = lines[i].replace(/^\* /, '').trim();
+      const st = stats.find((x) => x.subject === subject && x.errors.length);
+      if (st) {
+        const items = st.errors.map((e) => '    * [错题' + e.n + ': ' + e.title + '](' + st.file + '#错题-' + e.n + '：' + e.title + ')');
+        const nb = [];
+        let replaced = false;
+        for (let k = 0; k < block.length; k++) {
+          const l = block[k];
+          if (replaced && /^\s{4,}\*\s*\[/.test(l)) continue; // 跳过旧条目
+          nb.push(l);
+          if (!replaced && /^\s*\*\s*错题记录\s*$/.test(l)) {
+            replaced = true;
+            items.forEach((it) => nb.push(it));
+          }
+        }
+        out.push(...nb);
+      } else {
+        out.push(...block);
+      }
+      i = j;
+    } else {
+      out.push(lines[i]); i++;
+    }
+  }
+  writeMd(ws, '_sidebar.md', out.join('\n').trim() + '\n');
+  return { ok: true, count: stats.reduce((a, s) => a + s.errors.length, 0) };
+}
+
+module.exports = { parseProfile, saveProfile, uploadProfileImage, subjectStats, updateReadmeStats, searchErrors, deleteError, syncSidebar };

@@ -38,6 +38,18 @@ const DEFAULT_PROVIDERS = {
       { name: 'Claude Sonnet 3.7（claude-3-7-sonnet-20250219）', id: 'claude-3-7-sonnet-20250219' },
       { name: 'Claude Haiku 3.5（claude-3-5-haiku-20241022）', id: 'claude-3-5-haiku-20241022' }
     ]
+  },
+  local: {
+    id: 'local', name: '本地', kind: 'openai',
+    baseUrl: 'http://localhost:11434/v1', model: 'qwen2.5',
+    vision: false, enabled: false, apiKey: '', systemPrompt: '', temperature: '',
+    models: [
+      { name: 'qwen2.5（推荐）', id: 'qwen2.5' },
+      { name: 'llama3.1', id: 'llama3.1' },
+      { name: 'deepseek-r1', id: 'deepseek-r1' },
+      { name: 'gemma2', id: 'gemma2' },
+      { name: 'mistral', id: 'mistral' }
+    ]
   }
 };
 

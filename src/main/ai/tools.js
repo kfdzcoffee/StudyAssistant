@@ -287,7 +287,7 @@ function createTools({ workspace, git, confirmGate, emit, windowRef }) {
     }
   }
 
-  return { defs: TOOL_DEFS, execute };
+  return { defs: TOOL_DEFS, execute, confirmGate };
 }
 
 module.exports = { createTools, TOOL_DEFS };
