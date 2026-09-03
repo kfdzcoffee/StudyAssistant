@@ -79,8 +79,8 @@ function templateSidebar(subjects) {
   return lines.join('\n') + '\n';
 }
 
-function templateSubject(subject) {
-  return `# ${subject}档案
+function templateSubject(subject, hasEssay) {
+  let tpl = `# ${subject}档案
 
 > 最后更新：{date}
 
@@ -107,6 +107,19 @@ function templateSubject(subject) {
 （可通过「错题助手 · 学习助手」的错题录入功能添加错题，格式：#### 错题 N：标题）
 
 `;
+  if (hasEssay) {
+    tpl += `
+---
+
+## 二、作文
+
+### 作文记录
+
+（可通过「错题助手 · 学习助手」的作文录入功能添加作文，格式：#### 作文 N：标题）
+
+`;
+  }
+  return tpl;
 }
 
 const TEMPLATE_SCORE = `# 分数预测
@@ -218,6 +231,7 @@ function readTemplateIndex() {
 
 function buildDocsify(ws, opts = {}) {
   const subjects = (opts.subjects && opts.subjects.length) ? opts.subjects : DEFAULT_SUBJECTS;
+  const essaySubjects = opts.essaySubjects || [];
   const created = [];
   const overwritten = [];
   const date = today();
@@ -238,7 +252,7 @@ function buildDocsify(ws, opts = {}) {
   write('index.html', idx, false, true);
   write('README.md', TEMPLATE_README.replace('{date}', date), true, false);
   write('_sidebar.md', templateSidebar(subjects), true, false);
-  subjects.forEach((s) => write(s + '.md', templateSubject(s).replace('{date}', date), true, false));
+  subjects.forEach((s) => write(s + '.md', templateSubject(s, essaySubjects.indexOf(s) !== -1).replace('{date}', date), true, false));
   write('分数预测.md', TEMPLATE_SCORE.replace('{date}', date), true, false);
   write('编辑注意事项.md', TEMPLATE_NOTES, true, false);
 

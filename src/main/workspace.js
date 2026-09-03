@@ -124,12 +124,54 @@ class Workspace {
   }
 
   // 新建科目：创建 科目.md，并在 _sidebar.md 与 README.md 中注册（一次性确认）
-  createSubject(subject, content, { confirmGate } = {}) {
+  createSubject(subject, content, { confirmGate, hasEssay } = {}) {
     const rel = subject + '.md';
     const fp = this.resolve(rel);
     const isMd = true;
     let text = String(content || '');
     if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    // 若未提供内容，则按模板生成（含可选作文部分）
+    if (!text.trim()) {
+      text = `# ${subject}档案
+
+> 最后更新：${new Date().toISOString().slice(0, 10)}
+
+---
+
+## 一、错题
+
+### 易错题型汇总
+
+| 题型 | 出错次数 | 典型表现 |
+|------|:---:|------|
+| （待录入） | — | — |
+
+### 易错原因汇总
+
+| 原因 | 频率 |
+|------|:---:|
+| （待录入） | — |
+
+---
+
+### 错题记录
+
+（可通过「错题助手 · 学习助手」的错题录入功能添加错题，格式：#### 错题 N：标题）
+
+`;
+      if (hasEssay) {
+        text += `
+---
+
+## 二、作文
+
+### 作文记录
+
+（可通过「错题助手 · 学习助手」的作文录入功能添加作文，格式：#### 作文 N：标题）
+
+`;
+      }
+    }
     const writeText = '\uFEFF' + text;
 
     const sidebarAdd = `\n* ${subject}\n  * [易错汇总](${rel}#易错题型汇总)\n  * 错题记录\n`;

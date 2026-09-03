@@ -80,7 +80,8 @@ const TOOL_DEFS = [
         type: 'object',
         properties: {
           subject: { type: 'string', description: '科目名，如 物理' },
-          content: { type: 'string', description: '科目档案完整 Markdown 内容' }
+          content: { type: 'string', description: '科目档案完整 Markdown 内容' },
+          hasEssay: { type: 'boolean', description: '该科目是否有作文（有则档案包含作文记录部分）' }
         },
         required: ['subject', 'content']
       }
@@ -238,7 +239,7 @@ function createTools({ workspace, git, confirmGate, emit, windowRef }) {
       }
       case 'create_subject': {
         try {
-          const r = await workspace.createSubject(args.subject, args.content, { confirmGate });
+          const r = await workspace.createSubject(args.subject, args.content, { confirmGate, hasEssay: args.hasEssay });
           return r.cancelled ? { ok: false, cancelled: true, reason: '用户拒绝了新建科目' } : r;
         } catch (e) { return { error: e.message }; }
       }

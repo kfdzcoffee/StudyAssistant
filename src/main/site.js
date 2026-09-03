@@ -37,6 +37,23 @@ function section(md, heading) {
 }
 function esc(s) { return String(s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
+// ===== 读取错题索引：构建 file#n -> 唯一错题编号 的映射 =====
+// 用于让 sidebar 链接锚点 = 唯一错题编号（如 #E-2026-xxxxxx），与正文标题锚点一致
+function readErrorNumberMap(ws) {
+  const fp = ws.resolve('错题库/index.json');
+  const map = {};
+  if (!fs.existsSync(fp)) return map;
+  try {
+    const arr = JSON.parse(fs.readFileSync(fp, 'utf8') || '[]');
+    if (Array.isArray(arr)) {
+      arr.forEach((e) => {
+        if (e && e.file && e.n && e.number) map[e.file + '#' + e.n] = e.number;
+      });
+    }
+  } catch (e) { /* 忽略解析失败 */ }
+  return map;
+}
+
 // ===== 解析 README 目标院校 + 关于作者 =====
 function parseProfile(ws) {
   const md = readMd(ws, 'README.md');
@@ -128,11 +145,15 @@ function subjectStats(ws) {
     const re = /^#{2,4}\s*错题\s*(\d+)\s*[：:]\s*(.*)$/gm;
     while ((m = re.exec(md))) errors.push({ n: parseInt(m[1], 10), title: (m[2] || '').trim() });
     const essays = [];
-    const re2 = /^#{2,4}\s*(?:作文|练习作文|考场作文)\s*(\d+)\s*[：:]\s*(.*)$/gm;
-    while ((m = re2.exec(md))) essays.push({ n: parseInt(m[1], 10), title: (m[2] || '').trim() });
-    // 语文：编号作文小节（### 2.1 《…》）
+    // 作文 N：标题（### 作文 3：《…》/ ### 练习作文 1：…）
+    const re2 = /^#{2,4}\s*(?:作文|练习作文|考场作文|新作文|作文分析)\s*(\d+)?\s*[：:]\s*(.*)$/gm;
+    while ((m = re2.exec(md))) essays.push({ n: parseInt(m[1] || 0, 10), title: (m[2] || '').trim() });
+    // 编号作文小节（### 2.1 《…》）
     const re3 = /^#{2,4}\s*\d+\.\d+\s*(《[^》]*》[^\n]*)/gm;
     while ((m = re3.exec(md))) essays.push({ n: 0, title: m[1].trim() });
+    // 中文序号作文小节（## 三、…作文：《…》/ ## 五、新作文：《…》）
+    const re4 = /^#{2,4}\s*[一二三四五六七八九十]+、([^\n《]*《[^》]*》[^\n]*)$/gm;
+    while ((m = re4.exec(md))) essays.push({ n: 0, title: m[1].trim() });
     const dateM = md.match(/最后更新[：:]\s*([^\n]+)/);
     out.push({ subject: f.replace(/\.md$/, ''), file: f, errors, essays, date: dateM ? dateM[1].trim() : '' });
   }
@@ -241,10 +262,10 @@ function deleteError(ws, file, n) {
   while (cleaned.length && cleaned[0].trim() === '') cleaned.shift();
   while (cleaned.length && cleaned[cleaned.length - 1].trim() === '') cleaned.pop();
   writeMd(ws, file, cleaned.join('\n').trim() + '\n');
-  // 更新侧边栏：移除对应条目
+  // 更新侧边栏：移除对应条目（兼容旧格式 #错题-N：标题 与新格式 #E-2026-xxxxxx）
   const sb = readMd(ws, '_sidebar.md');
   if (sb != null) {
-    const linkRe = new RegExp('^\\s*\\*\\s*\\[错题\\s*' + n + '\\s*[：:][^\\]]*\\]\(' + esc(file) + '#[^)]*\\)\\s*$', 'gm');
+    const linkRe = new RegExp('^\\s*\\*\\s*\\[错题\\s*' + n + '\\s*[：:][^\\]]*\\]\\(' + esc(file) + '#[^)]*\\)\\s*$', 'gm');
     const nsb = sb.replace(linkRe, '').replace(/\n{3,}/g, '\n\n');
     writeMd(ws, '_sidebar.md', nsb.trim() + '\n');
   }
@@ -256,6 +277,8 @@ function syncSidebar(ws) {
   const sb = readMd(ws, '_sidebar.md');
   if (sb == null) return { ok: false, message: '_sidebar.md 不存在' };
   const stats = subjectStats(ws);
+  // 读取错题索引，用于把 sidebar 链接锚点设为唯一错题编号（#E-2026-xxxxxx）
+  const numMap = readErrorNumberMap(ws);
   const lines = sb.split('\n');
   const out = [];
   let i = 0;
@@ -267,7 +290,12 @@ function syncSidebar(ws) {
       const subject = lines[i].replace(/^\* /, '').trim();
       const st = stats.find((x) => x.subject === subject && x.errors.length);
       if (st) {
-        const items = st.errors.map((e) => '    * [错题' + e.n + ': ' + e.title + '](' + st.file + '#错题-' + e.n + '：' + e.title + ')');
+        // 链接锚点 = 唯一错题编号（若索引缺失则回退到旧格式 #错题-N：标题）
+        const items = st.errors.map((e) => {
+          const num = numMap[st.file + '#' + e.n];
+          const anchor = num ? '#' + num : '#错题-' + e.n + '：' + e.title;
+          return '    * [错题' + e.n + ': ' + e.title + '](' + st.file + anchor + ')';
+        });
         const nb = [];
         let replaced = false;
         for (let k = 0; k < block.length; k++) {

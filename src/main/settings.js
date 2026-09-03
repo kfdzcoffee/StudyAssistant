@@ -41,7 +41,7 @@ const DEFAULT_PROVIDERS = {
   },
   local: {
     id: 'local', name: '本地', kind: 'openai',
-    baseUrl: 'http://localhost:11434/v1', model: 'qwen2.5',
+    baseUrl: 'http://127.0.0.1:11434/v1', model: 'tinyllama-chat',
     vision: false, enabled: false, apiKey: '', systemPrompt: '', temperature: '',
     models: [
       { name: 'qwen2.5（推荐）', id: 'qwen2.5' },
@@ -75,7 +75,27 @@ function defaultConfig() {
     users: [],
     currentUser: '',
     providers: JSON.parse(JSON.stringify(DEFAULT_PROVIDERS)),
-    prompts: JSON.parse(JSON.stringify(DEFAULT_PROMPTS))
+    prompts: JSON.parse(JSON.stringify(DEFAULT_PROMPTS)),
+    modelRuntime: {
+      mode: 'api', // api | local
+      local: {
+        enabled: true,
+        selectedModelId: 'qwen2.5-1.5b',
+        modelStorePath: '',
+        idlePolicy: 'idle_5m', // always_on | manual | idle_5m
+        idleMinutes: 5
+      }
+    },
+    // 云端同步配置（自有服务器数据库）
+    sync: {
+      enabled: false,
+      serverUrl: '',
+      username: '',
+      token: '',          // JWT（登录后保存）
+      autoSync: true,     // 启动/退出自动同步
+      lastSync: '',       // 上次同步时间
+      collections: { words: true, wenyan: true, todos: true, focus_records: true, errors: true, error_groups: true, notes: true, settings: true }
+    }
   };
 }
 
@@ -115,6 +135,12 @@ class Settings {
         cfg.users = Array.isArray(cfg.users) ? cfg.users : [];
         cfg.currentUser = cfg.currentUser || '';
         cfg.prompts = Object.assign({}, DEFAULT_PROMPTS, cfg.prompts || {});
+        cfg.modelRuntime = Object.assign({ mode: 'api', local: { enabled: true, selectedModelId: 'qwen2.5-1.5b', modelStorePath: '', idlePolicy: 'idle_5m', idleMinutes: 5 } }, cfg.modelRuntime || {});
+        cfg.modelRuntime.local = Object.assign({ enabled: true, selectedModelId: 'qwen2.5-1.5b', modelStorePath: '', idlePolicy: 'idle_5m', idleMinutes: 5 }, cfg.modelRuntime.local || {});
+        cfg.sync = Object.assign({
+          enabled: false, serverUrl: '', username: '', token: '', autoSync: true, lastSync: '',
+          collections: { words: true, wenyan: true, todos: true, focus_records: true, errors: true, error_groups: true, notes: true, settings: true }
+        }, cfg.sync || {});
         this.config = cfg;
         return cfg;
       }

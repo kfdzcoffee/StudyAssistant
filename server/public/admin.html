@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学习助手 · 云端管理面板</title>
+<style>
+  :root {
+    --bg: #f1f5f9; --panel: #ffffff; --panel2: #eef2f7; --panel3: #e2e8f0;
+    --border: #d7dee8; --text: #1e293b; --text2: #475569; --text3: #64748b;
+    --accent: #0ea5e9; --green: #16a34a; --red: #dc2626; --yellow: #d97706; --purple: #7c3aed;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: "Segoe UI", "Microsoft YaHei", sans-serif; min-height: 100vh; }
+  .ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -3px; }
+  .ic.sm { width: 13px; height: 13px; }
+  .ic.lg { width: 22px; height: 22px; }
+  .header { background: var(--panel); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .header .brand { display: flex; align-items: center; gap: 12px; }
+  .header .brand-logo { width: 34px; height: 34px; border-radius: 9px; overflow: hidden; flex-shrink: 0; }
+  .header .brand-logo svg { width: 100%; height: 100%; display: block; }
+  .header h1 { font-size: 16px; display: flex; flex-direction: column; line-height: 1.25; }
+  .header h1 .sub { font-size: 11px; color: var(--text3); font-weight: 400; }
+  .header .badge { font-size: 12px; padding: 3px 10px; border-radius: 20px; background: var(--green); color: #052e16; font-weight: 600; }
+  .header .badge.off { background: var(--red); color: #fff; }
+  .header .badge.warn { background: var(--yellow); color: #3b2f00; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .header .user-chip { font-size: 12px; color: var(--text2); display: flex; align-items: center; gap: 6px; }
+  .container { max-width: 1200px; margin: 24px auto; padding: 0 20px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 24px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .card .label { font-size: 12px; color: var(--text3); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .card .value { font-size: 26px; font-weight: 700; }
+  .card .sub { font-size: 12px; color: var(--text2); margin-top: 4px; }
+  .section { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+  .section h2 { font-size: 15px; margin-bottom: 16px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .section h2 .right { margin-left: auto; font-size: 12px; font-weight: 400; color: var(--text3); }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  th { color: var(--text3); font-weight: 500; font-size: 12px; }
+  tr:hover td { background: var(--panel2); }
+  .btn { padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel2); color: var(--text); cursor: pointer; font-size: 12px; transition: all .15s; display: inline-flex; align-items: center; gap: 6px; }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.danger:hover { border-color: var(--red); color: var(--red); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #052e16; font-weight: 600; }
+  .btn.primary:hover { opacity: .85; color: #052e16; }
+  .btn.green { background: var(--green); border-color: var(--green); color: #052e16; font-weight: 600; }
+  .btn.green:hover { opacity: .85; color: #052e16; }
+  .btn.sm { padding: 4px 10px; font-size: 11px; }
+  .empty { color: var(--text3); text-align: center; padding: 20px; font-size: 13px; }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--panel2); border: 1px solid var(--border); padding: 10px 20px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 100; }
+  .toast.show { opacity: 1; }
+  .toast.ok { border-color: var(--green); color: var(--green); }
+  .toast.err { border-color: var(--red); color: var(--red); }
+  .counts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .count-chip { background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; font-size: 12px; }
+  .count-chip b { color: var(--accent); }
+  .count-chip .del { color: var(--red); font-size: 11px; margin-left: 4px; }
+  .refresh { margin-left: auto; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--text3); margin-bottom: 6px; }
+  .field input, .field select { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel2); color: var(--text); font-size: 14px; outline: none; }
+  .field input:focus, .field select:focus { border-color: var(--accent); }
+  .field .row { display: flex; gap: 8px; }
+  .field .row input { flex: 1; }
+  .hint { font-size: 12px; color: var(--yellow); }
+  .hint.green { color: var(--green); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 800px) { .grid-2 { grid-template-columns: 1fr; } }
+  .tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+  .tab { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel2); color: var(--text2); cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+  .tab.active { background: var(--accent); color: #052e16; border-color: var(--accent); font-weight: 600; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .status-dot.green { background: var(--green); }
+  .status-dot.red { background: var(--red); }
+  .status-dot.yellow { background: var(--yellow); }
+  .log-line { font-family: Consolas, monospace; font-size: 12px; padding: 6px 10px; border-bottom: 1px solid var(--border); color: var(--text2); white-space: pre-wrap; word-break: break-all; }
+  .log-line:hover { background: var(--panel2); }
+  .log-time { color: var(--text3); margin-right: 8px; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; z-index: 50; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 24px; width: 90%; max-width: 460px; max-height: 90vh; overflow-y: auto; }
+  .modal h3 { font-size: 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .modal .close { float: right; cursor: pointer; color: var(--text3); font-size: 18px; }
+  .modal .close:hover { color: var(--red); }
+  .setup { max-width: 480px; margin: 40px auto; }
+  .setup .logo { text-align: center; margin-bottom: 12px; }
+  .setup .logo svg { width: 72px; height: 72px; border-radius: 18px; }
+  .setup h2 { text-align: center; margin-bottom: 4px; }
+  .setup .sub { text-align: center; color: var(--text3); font-size: 13px; margin-bottom: 20px; }
+  .steps { display: flex; gap: 8px; margin-bottom: 20px; }
+  .step { flex: 1; text-align: center; font-size: 12px; color: var(--text3); padding: 8px; border-radius: 8px; background: var(--panel2); }
+  .step.active { color: var(--accent); border: 1px solid var(--accent); }
+  .step.done { color: var(--green); }
+  .mono { font-family: Consolas, monospace; }
+  .kv { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .kv .k { color: var(--text3); }
+  .kv .v { color: var(--text); }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; background: var(--panel2); border: 1px solid var(--border); }
+  .pill.green { color: var(--green); border-color: var(--green); }
+  .pill.red { color: var(--red); border-color: var(--red); }
+  .pill.yellow { color: var(--yellow); border-color: var(--yellow); }
+  .pill.purple { color: var(--purple); border-color: var(--purple); }
+  .conn { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+  .conn .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .conn.online .dot { background: var(--green); }
+  .conn.offline .dot { background: var(--text3); }
+  .conn.online { color: var(--green); }
+  .conn.offline { color: var(--text3); }
+  .nav-btns { display: flex; gap: 8px; margin-top: 16px; }
+  .nav-btns .spacer { flex: 1; }
+</style>
+</head>
+<body>
+<!-- SVG 图标库 -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <!-- 渐变定义放在顶层（文档作用域），供 <use> 引用的 symbol 内 url(#...) 解析 -->
+  <defs>
+    <linearGradient id="lg-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3b82f6"/><stop offset="0.52" stop-color="#6366f1"/><stop offset="1" stop-color="#06b6d4"/>
+    </linearGradient>
+    <linearGradient id="lg-cap" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#dbe6fb"/>
+    </linearGradient>
+  </defs>
+  <symbol id="i-logo" viewBox="0 0 512 512">
+    <rect x="10" y="10" width="492" height="492" rx="116" fill="#3b82f6"/>
+    <path d="M256 126 L410 196 L256 266 L102 196 Z" fill="#ffffff"/>
+    <rect x="186" y="214" width="140" height="92" rx="36" fill="#ffffff"/>
+    <circle cx="256" cy="196" r="15" fill="#f59e0b"/>
+    <path d="M272 198 L360 148" stroke="#f59e0b" stroke-width="9" stroke-linecap="round"/>
+    <path d="M152 352 C188 326 222 326 250 348 L250 428 C222 406 188 406 152 432 Z" fill="#ffffff" fill-opacity="0.95"/>
+    <path d="M360 352 C324 326 290 326 262 348 L262 428 C290 406 324 406 360 432 Z" fill="#ffffff" fill-opacity="0.7"/>
+    <circle cx="404" cy="392" r="48" fill="#22c55e"/>
+    <path d="M382 392 L398 408 L428 376" fill="none" stroke="#ffffff" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="i-dashboard" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-device" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></symbol>
+  <symbol id="i-log" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></symbol>
+  <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></symbol>
+  <symbol id="i-port" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+  <symbol id="i-dice" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><circle cx="15.5" cy="8.5" r="1.5"/><circle cx="8.5" cy="15.5" r="1.5"/><circle cx="15.5" cy="15.5" r="1.5"/></symbol>
+  <symbol id="i-save" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></symbol>
+</svg>
+
+<div class="header">
+  <div class="brand">
+    <div class="brand-logo"><svg><use href="#i-logo"/></svg></div>
+    <h1>学习助手 · 云端管理面板<span class="sub">Study Assistant Cloud Console</span></h1>
+  </div>
+  <div class="header-right">
+    <span class="user-chip" id="user-chip" style="display:none"><svg class="ic sm"><use href="#i-user"/></svg><span id="user-chip-name"></span></span>
+    <span class="badge" id="status-badge">检测中…</span>
+    <button class="btn primary refresh" onclick="loadAll()"><svg class="ic sm"><use href="#i-refresh"/></svg> 刷新</button>
+    <button class="btn" id="logout-btn" style="display:none" onclick="logout()"><svg class="ic sm"><use href="#i-logout"/></svg> 退出登录</button>
+  </div>
+</div>
+
+<!-- 首次安装引导 -->
+<div class="container setup" id="setup-view" style="display:none">
+  <div class="section">
+    <div class="logo"><svg><use href="#i-logo"/></svg></div>
+    <h2>欢迎使用学习助手云端服务</h2>
+    <p class="sub">首次安装，请完成以下配置以启用服务</p>
+    <div class="steps">
+      <div class="step active" id="step-1">1. 管理员账号</div>
+      <div class="step" id="step-2">2. 服务端口</div>
+      <div class="step" id="step-3">3. 完成</div>
+    </div>
+    <div id="setup-form">
+      <div class="field"><label>管理员用户名（3-20 位字母、数字或下划线）</label><input id="setup-user" type="text" placeholder="例如 admin" autocomplete="off"></div>
+      <div class="field"><label>管理员密码（至少 8 位，含字母和数字）</label><input id="setup-pass" type="password" placeholder="设置登录密码" autocomplete="new-password"></div>
+      <div class="field"><label>确认密码</label><input id="setup-pass2" type="password" placeholder="再次输入密码" autocomplete="new-password"></div>
+      <div class="nav-btns">
+        <div class="spacer"></div>
+        <button class="btn primary" style="padding:10px 30px" onclick="setupNext()">下一步</button>
+      </div>
+      <p class="hint" id="setup-hint" style="text-align:center;margin-top:12px"></p>
+    </div>
+    <div id="setup-port-form" style="display:none">
+      <div class="field"><label>服务端口（1-65535，默认 3000）</label><input id="setup-port" type="number" placeholder="3000" value="3000"></div>
+      <div class="field"><label>数据库连接串（postgres://用户:密码@主机:端口/数据库）</label><input id="setup-db" type="text" placeholder="postgres://user:pass@host:5432/db" class="mono"></div>
+      <p class="hint" style="margin-bottom:12px">数据库连接串通常已在服务器环境变量中配置，留空则使用默认配置。</p>
+      <div class="nav-btns">
+        <button class="btn" onclick="setupBack()">上一步</button>
+        <div class="spacer"></div>
+        <button class="btn primary" style="padding:10px 30px" onclick="setupAdmin()">创建并进入面板</button>
+      </div>
+      <p class="hint" id="setup-hint2" style="text-align:center;margin-top:12px"></p>
+    </div>
+    <div id="setup-done" style="display:none;text-align:center">
+      <div style="font-size:40px;margin-bottom:10px"><svg class="ic lg" style="width:48px;height:48px;color:var(--green)"><use href="#i-check"/></svg></div>
+      <p style="margin-bottom:16px">配置完成！</p>
+      <button class="btn primary" style="padding:10px 30px" onclick="location.reload()">进入管理面板</button>
+    </div>
+  </div>
+</div>
+
+<!-- 登录界面 -->
+<div class="container" id="login-view" style="max-width:400px;margin-top:60px;display:none">
+  <div class="section">
+    <div style="text-align:center;margin-bottom:12px"><svg class="ic lg" style="width:48px;height:48px;color:var(--accent)"><use href="#i-user"/></svg></div>
+    <h2 style="text-align:center">管理员登录</h2>
+    <div class="field"><label>管理员账号</label><input id="admin-user" type="text" placeholder="请输入管理员账号" autocomplete="username"></div>
+    <div class="field"><label>密码</label><input id="admin-pass" type="password" placeholder="请输入密码" autocomplete="current-password"></div>
+    <div style="text-align:center;margin-top:16px">
+      <button class="btn primary" style="padding:10px 30px" onclick="adminLogin()">登 录</button>
+    </div>
+    <p class="hint" id="login-hint" style="text-align:center;margin-top:12px"></p>
+  </div>
+</div>
+
+<!-- 主界面 -->
+<div class="container" id="main-view" style="display:none">
+  <!-- 状态卡片 -->
+  <div class="cards" id="cards"></div>
+
+  <!-- 标签页导航 -->
+  <div class="tabs">
+    <div class="tab active" data-tab="overview" onclick="switchTab('overview')"><svg class="ic sm"><use href="#i-dashboard"/></svg> 概览</div>
+    <div class="tab" data-tab="config" onclick="switchTab('config')"><svg class="ic sm"><use href="#i-gear"/></svg> 服务器配置</div>
+    <div class="tab" data-tab="admin" onclick="switchTab('admin')"><svg class="ic sm"><use href="#i-user"/></svg> 管理员账户</div>
+    <div class="tab" data-tab="users" onclick="switchTab('users')"><svg class="ic sm"><use href="#i-users"/></svg> 用户管理</div>
+    <div class="tab" data-tab="devices" onclick="switchTab('devices')"><svg class="ic sm"><use href="#i-device"/></svg> 设备</div>
+    <div class="tab" data-tab="logs" onclick="switchTab('logs')"><svg class="ic sm"><use href="#i-log"/></svg> 审计日志</div>
+  </div>
+
+  <!-- 概览 -->
+  <div class="tab-panel active" id="panel-overview">
+    <div class="section">
+      <h2><svg class="ic"><use href="#i-chart"/></svg> 数据统计 <span class="right">总数 / 活跃数</span></h2>
+      <div class="counts" id="counts"></div>
+    </div>
+    <div class="section">
+      <h2><svg class="ic"><use href="#i-info"/></svg> 服务器信息</h2>
+      <div id="server-info"></div>
+    </div>
+  </div>
+
+  <!-- 服务器配置 -->
+  <div class="tab-panel" id="panel-config">
+    <div class="grid-2">
+      <div class="section">
+        <h2><svg class="ic"><use href="#i-gear"/></svg> 基础配置</h2>
+        <div class="field"><label>服务端口（1-65535，修改后需重启生效）</label><input id="cfg-port" type="number" placeholder="3000"></div>
+        <div class="field"><label>JWT 密钥（≥32 位，用于签发登录令牌）</label>
+          <div class="row">
+            <input id="cfg-jwt" type="text" placeholder="留空则保持不变">
+            <button class="btn" onclick="genJwt()"><svg class="ic sm"><use href="#i-dice"/></svg> 生成</button>
+          </div>
+        </div>
+        <div class="field"><label>CORS 允许来源（* 表示全部，或用逗号分隔多个域名）</label><input id="cfg-cors" type="text" placeholder="*"></div>
+        <div style="margin-top:16px">
+          <button class="btn primary" onclick="saveConfig()"><svg class="ic sm"><use href="#i-save"/></svg> 保存配置</button>
+        </div>
+        <p class="hint" id="config-hint" style="margin-top:10px"></p>
+      </div>
+      <div class="section">
+        <h2><svg class="ic"><use href="#i-db"/></svg> 数据库连接</h2>
+        <div class="field"><label>当前连接</label><input id="db-current" type="text" readonly class="mono"></div>
+        <div class="field"><label>新连接串（postgres://用户:密码@主机:端口/数据库）</label>
+          <div class="row">
+            <input id="db-url" type="text" placeholder="postgres://user:pass@host:5432/db" class="mono">
+            <button class="btn" onclick="testDb()"><svg class="ic sm"><use href="#i-search"/></svg> 测试</button>
+          </div>
+        </div>
+        <div class="field"><label>测试结果</label><div id="db-test-result" style="font-size:13px;color:var(--text2)">—</div></div>
+        <div style="margin-top:16px">
+          <button class="btn green" onclick="reconnectDb()"><svg class="ic sm"><use href="#i-link"/></svg> 应用并重连</button>
+        </div>
+        <p class="hint" id="db-hint" style="margin-top:10px"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 管理员账户 -->
+  <div class="tab-panel" id="panel-admin">
+    <div class="grid-2">
+      <div class="section">
+        <h2><svg class="ic"><use href="#i-user"/></svg> 修改用户名</h2>
+        <div class="field"><label>新用户名（3-20 位字母、数字或下划线）</label><input id="admin-new-user" type="text" placeholder="新用户名"></div>
+        <div style="margin-top:16px"><button class="btn primary" onclick="changeUsername()"><svg class="ic sm"><use href="#i-save"/></svg> 保存用户名</button></div>
+        <p class="hint" id="user-hint" style="margin-top:10px"></p>
+      </div>
+      <div class="section">
+        <h2><svg class="ic"><use href="#i-key"/></svg> 修改密码</h2>
+        <div class="field"><label>原密码</label><input id="admin-old-pass" type="password" placeholder="当前密码"></div>
+        <div class="field"><label>新密码（至少 8 位，含字母和数字）</label><input id="admin-new-pass" type="password" placeholder="新密码"></div>
+        <div class="field"><label>确认新密码</label><input id="admin-new-pass2" type="password" placeholder="再次输入新密码"></div>
+        <div style="margin-top:16px"><button class="btn primary" onclick="changePassword()"><svg class="ic sm"><use href="#i-key"/></svg> 修改密码</button></div>
+        <p class="hint" id="pass-hint" style="margin-top:10px"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 用户管理 -->
+  <div class="tab-panel" id="panel-users">
+    <div class="section">
+      <h2><svg class="ic"><use href="#i-users"/></svg> 用户列表 <span class="right"><button class="btn green sm" onclick="openCreateUser()"><svg class="ic sm"><use href="#i-plus"/></svg> 创建用户</button></span></h2>
+      <table>
+        <thead><tr><th>用户名</th><th>昵称</th><th>连接状态</th><th>设备数</th><th>最近同步</th><th>注册时间</th><th>操作</th></tr></thead>
+        <tbody id="users-body"></tbody>
+      </table>
+      <div class="empty" id="users-empty" style="display:none">暂无用户</div>
+    </div>
+  </div>
+
+  <!-- 设备 -->
+  <div class="tab-panel" id="panel-devices">
+    <div class="section">
+      <h2><svg class="ic"><use href="#i-device"/></svg> 已连接设备</h2>
+      <table>
+        <thead><tr><th>设备名</th><th>平台</th><th>所属用户</th><th>最后在线</th><th>注册时间</th></tr></thead>
+        <tbody id="devices-body"></tbody>
+      </table>
+      <div class="empty" id="devices-empty" style="display:none">暂无设备</div>
+    </div>
+  </div>
+
+  <!-- 审计日志 -->
+  <div class="tab-panel" id="panel-logs">
+    <div class="section">
+      <h2><svg class="ic"><use href="#i-log"/></svg> 审计日志 <span class="right">最近 100 条</span></h2>
+      <div id="logs-body"></div>
+      <div class="empty" id="logs-empty" style="display:none">暂无日志</div>
+    </div>
+  </div>
+</div>
+
+<!-- 创建用户弹窗 -->
+<div class="modal-overlay" id="create-user-modal">
+  <div class="modal">
+    <span class="close" onclick="closeCreateUser()">✕</span>
+    <h3><svg class="ic"><use href="#i-plus"/></svg> 创建用户</h3>
+    <div class="field"><label>用户名（3-20 位字母、数字或下划线）</label><input id="cu-user" type="text" placeholder="用户名"></div>
+    <div class="field"><label>密码（至少 8 位，含字母和数字）</label><input id="cu-pass" type="password" placeholder="密码"></div>
+    <div class="field"><label>昵称（可选）</label><input id="cu-nick" type="text" placeholder="昵称"></div>
+    <div style="text-align:right;margin-top:16px">
+      <button class="btn" onclick="closeCreateUser()" style="margin-right:8px">取消</button>
+      <button class="btn primary" onclick="createUser()">创建</button>
+    </div>
+    <p class="hint" id="cu-hint" style="margin-top:10px"></p>
+  </div>
+</div>
+
+<!-- 用户统计弹窗 -->
+<div class="modal-overlay" id="user-stats-modal">
+  <div class="modal">
+    <span class="close" onclick="closeUserStats()">✕</span>
+    <h3><svg class="ic"><use href="#i-chart"/></svg> 用户数据统计</h3>
+    <div id="user-stats-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const TOKEN_KEY = 'sa_admin_token';
+let token = localStorage.getItem(TOKEN_KEY) || '';
+let adminUsername = localStorage.getItem('sa_admin_user') || '';
+
+const api = (path, opts) => {
+  opts = opts || {};
+  opts.headers = Object.assign({}, opts.headers || {});
+  if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+  return fetch('/api/admin' + path, opts).then(r => r.json());
+};
+
+function toast(msg, type) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type || '');
+  setTimeout(() => t.className = 'toast', 2500);
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ===== 视图切换 =====
+function showSetup() { $('#setup-view').style.display = 'block'; $('#login-view').style.display = 'none'; $('#main-view').style.display = 'none'; }
+function showLogin() { $('#setup-view').style.display = 'none'; $('#login-view').style.display = 'block'; $('#main-view').style.display = 'none'; }
+function showMain() { $('#setup-view').style.display = 'none'; $('#login-view').style.display = 'none'; $('#main-view').style.display = 'block'; }
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
+  if (name === 'users') loadUsers();
+  if (name === 'devices') loadDevices();
+  if (name === 'logs') loadLogs();
+  if (name === 'config') loadConfig();
+}
+
+// ===== 首次安装引导 =====
+let setupStep = 1;
+function setupNext() {
+  const username = $('#setup-user').value.trim();
+  const password = $('#setup-pass').value;
+  const password2 = $('#setup-pass2').value;
+  if (!username || !password) { $('#setup-hint').textContent = '请填写用户名和密码'; return; }
+  if (password !== password2) { $('#setup-hint').textContent = '两次输入的密码不一致'; return; }
+  $('#setup-hint').textContent = '';
+  $('#setup-form').style.display = 'none';
+  $('#setup-port-form').style.display = 'block';
+  $('#step-1').className = 'step done';
+  $('#step-2').className = 'step active';
+  setupStep = 2;
+}
+function setupBack() {
+  $('#setup-port-form').style.display = 'none';
+  $('#setup-form').style.display = 'block';
+  $('#step-1').className = 'step active';
+  $('#step-2').className = 'step';
+  setupStep = 1;
+}
+async function setupAdmin() {
+  const username = $('#setup-user').value.trim();
+  const password = $('#setup-pass').value;
+  const port = $('#setup-port').value.trim();
+  const dbUrl = $('#setup-db').value.trim();
+  const body = { username, password };
+  if (port) body.port = port;
+  if (dbUrl) body.databaseUrl = dbUrl;
+  const r = await api('/init', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (r.ok) {
+    $('#setup-port-form').style.display = 'none';
+    $('#setup-done').style.display = 'block';
+    $('#step-2').className = 'step done';
+    $('#step-3').className = 'step active';
+    $('#setup-hint2').textContent = '';
+  } else {
+    $('#setup-hint2').textContent = r.message || '初始化失败';
+  }
+}
+
+// ===== 登录 =====
+async function adminLogin() {
+  const username = $('#admin-user').value.trim();
+  const password = $('#admin-pass').value;
+  if (!username || !password) { $('#login-hint').textContent = '请输入账号和密码'; return; }
+  const r = await api('/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+  if (r.ok) {
+    token = r.token;
+    adminUsername = r.username;
+    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem('sa_admin_user', r.username);
+    $('#login-hint').textContent = '';
+    showMain();
+    loadAll();
+  } else {
+    $('#login-hint').textContent = r.message || '登录失败';
+  }
+}
+
+function logout() {
+  token = '';
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem('sa_admin_user');
+  showLogin();
+}
+
+// ===== 状态加载 =====
+async function loadStatus() {
+  const r = await api('/status');
+  if (!r.ok) {
+    if (r.message && r.message.indexOf('登录') !== -1) { showLogin(); return; }
+    $('#status-badge').textContent = '服务异常'; $('#status-badge').className = 'badge off'; return;
+  }
+  $('#status-badge').textContent = '运行中';
+  $('#status-badge').className = 'badge';
+  $('#user-chip').style.display = 'inline-flex';
+  $('#user-chip-name').textContent = adminUsername || '管理员';
+  $('#logout-btn').style.display = 'inline-flex';
+
+  const uptime = Math.floor(r.uptime);
+  const days = Math.floor(uptime / 86400), hrs = Math.floor((uptime % 86400) / 3600), mins = Math.floor((uptime % 3600) / 60);
+  const dbColor = r.db === 'connected' ? 'var(--green)' : 'var(--red)';
+  $('#cards').innerHTML = `
+    <div class="card"><div class="label"><span class="status-dot ${r.db === 'connected' ? 'green' : 'red'}"></span><svg class="ic sm"><use href="#i-db"/></svg>数据库</div><div class="value" style="color:${dbColor}">${r.db === 'connected' ? '已连接' : '异常'}</div><div class="sub">PostgreSQL</div></div>
+    <div class="card"><div class="label"><svg class="ic sm"><use href="#i-users"/></svg>用户数</div><div class="value">${r.users}</div><div class="sub">已注册用户</div></div>
+    <div class="card"><div class="label"><svg class="ic sm"><use href="#i-device"/></svg>设备数</div><div class="value">${r.devices}</div><div class="sub">已连接设备</div></div>
+    <div class="card"><div class="label"><svg class="ic sm"><use href="#i-user"/></svg>管理员</div><div class="value">${r.admins}</div><div class="sub">管理账户</div></div>
+    <div class="card"><div class="label"><svg class="ic sm"><use href="#i-clock"/></svg>运行时长</div><div class="value" style="font-size:18px">${days}天 ${hrs}时 ${mins}分</div><div class="sub">服务持续运行</div></div>
+    <div class="card"><div class="label"><svg class="ic sm"><use href="#i-port"/></svg>端口</div><div class="value" style="font-size:18px">${r.port}</div><div class="sub">HTTP 服务端口</div></div>
+  `;
+
+  // 数据统计
+  const labels = { words: '生词本', wenyan: '文言文', todos: '待办', focus_records: '专注记录', errors: '错题', error_groups: '错题组' };
+  $('#counts').innerHTML = Object.entries(r.counts).map(([k, v]) => {
+    const active = r.activeCounts && r.activeCounts[k] !== undefined ? r.activeCounts[k] : v;
+    const del = v - active;
+    return `<span class="count-chip">${labels[k] || k}：<b>${v}</b>${del > 0 ? `<span class="del">(已删 ${del})</span>` : ''}</span>`;
+  }).join('');
+
+  // 服务器信息
+  $('#server-info').innerHTML = `
+    <div class="kv"><span class="k">服务状态</span><span class="v"><span class="pill green">运行中</span></span></div>
+    <div class="kv"><span class="k">数据库地址</span><span class="v mono">${esc(r.dbUrl)}</span></div>
+    <div class="kv"><span class="k">服务端口</span><span class="v">${r.port}</span></div>
+    <div class="kv"><span class="k">最近同步</span><span class="v">${r.lastSync ? new Date(r.lastSync).toLocaleString() : '暂无'}</span></div>
+    <div class="kv"><span class="k">服务器时间</span><span class="v">${new Date(r.time).toLocaleString()}</span></div>
+  `;
+}
+
+// ===== 配置管理 =====
+async function loadConfig() {
+  const r = await api('/config/all');
+  if (!r.ok) return;
+  $('#cfg-port').value = r.config.PORT;
+  $('#cfg-jwt').value = '';
+  $('#cfg-jwt').placeholder = r.config.JWT_SECRET;
+  $('#cfg-cors').value = r.config.CORS_ORIGIN;
+  $('#db-current').value = r.config.DATABASE_URL;
+}
+
+function genJwt() {
+  const chars = 'abcdef0123456789';
+  let s = '';
+  for (let i = 0; i < 64; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  $('#cfg-jwt').value = s;
+}
+
+async function saveConfig() {
+  const body = {};
+  const port = $('#cfg-port').value.trim();
+  const jwt = $('#cfg-jwt').value.trim();
+  const cors = $('#cfg-cors').value.trim();
+  if (port) body.PORT = port;
+  if (jwt) body.JWT_SECRET = jwt;
+  if (cors) body.CORS_ORIGIN = cors;
+  const r = await api('/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (r.ok) {
+    toast('配置已保存', 'ok');
+    $('#config-hint').textContent = '配置已保存。若修改了端口，需重启服务生效。';
+    $('#cfg-jwt').value = '';
+    loadConfig();
+  } else {
+    toast(r.message || '保存失败', 'err');
+    $('#config-hint').textContent = '✗ ' + (r.message || '保存失败');
+  }
+}
+
+async function testDb() {
+  const url = $('#db-url').value.trim();
+  if (!url) { $('#db-test-result').textContent = '请先填写连接串'; return; }
+  $('#db-test-result').textContent = '测试中…';
+  const r = await api('/db/test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) });
+  if (r.ok) {
+    $('#db-test-result').innerHTML = '<span style="color:var(--green)">连接成功</span>';
+  } else {
+    $('#db-test-result').innerHTML = '<span style="color:var(--red)">✗ ' + esc(r.message) + '</span>';
+  }
+}
+
+async function reconnectDb() {
+  const url = $('#db-url').value.trim();
+  if (!url) { $('#db-hint').textContent = '请先填写连接串'; return; }
+  if (!confirm('确定切换数据库连接？切换后当前连接将断开。')) return;
+  const r = await api('/db/reconnect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) });
+  if (r.ok) {
+    toast('数据库连接已更新', 'ok');
+    $('#db-hint').textContent = '数据库连接已更新';
+    $('#db-url').value = '';
+    loadConfig();
+  } else {
+    toast(r.message || '重连失败', 'err');
+    $('#db-hint').textContent = '✗ ' + (r.message || '重连失败');
+  }
+}
+
+// ===== 管理员账户 =====
+async function changeUsername() {
+  const newUsername = $('#admin-new-user').value.trim();
+  if (!newUsername) { $('#user-hint').textContent = '请输入新用户名'; return; }
+  const r = await api('/admin/username', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ newUsername }) });
+  if (r.ok) {
+    toast('用户名已修改', 'ok');
+    $('#user-hint').textContent = '用户名已修改为 ' + r.username;
+    adminUsername = r.username;
+    localStorage.setItem('sa_admin_user', r.username);
+    $('#admin-new-user').value = '';
+    $('#user-chip-name').textContent = adminUsername;
+  } else {
+    $('#user-hint').textContent = '✗ ' + (r.message || '修改失败');
+  }
+}
+
+async function changePassword() {
+  const oldPassword = $('#admin-old-pass').value;
+  const newPassword = $('#admin-new-pass').value;
+  const newPassword2 = $('#admin-new-pass2').value;
+  if (!oldPassword || !newPassword) { $('#pass-hint').textContent = '请填写原密码和新密码'; return; }
+  if (newPassword !== newPassword2) { $('#pass-hint').textContent = '两次输入的新密码不一致'; return; }
+  const r = await api('/admin/password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ oldPassword, newPassword }) });
+  if (r.ok) {
+    toast('密码已修改', 'ok');
+    $('#pass-hint').textContent = '密码已修改';
+    $('#admin-old-pass').value = ''; $('#admin-new-pass').value = ''; $('#admin-new-pass2').value = '';
+  } else {
+    $('#pass-hint').textContent = '✗ ' + (r.message || '修改失败');
+  }
+}
+
+// ===== 用户管理 =====
+async function loadUsers() {
+  const r = await api('/users');
+  if (!r.ok) return;
+  const body = $('#users-body');
+  const empty = $('#users-empty');
+  if (!r.users.length) { body.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  body.innerHTML = r.users.map(u => {
+    // 连接状态：有设备且最近在线在 5 分钟内视为在线
+    const online = u.last_seen && (Date.now() - new Date(u.last_seen).getTime()) < 5 * 60 * 1000;
+    const connHtml = online
+      ? '<span class="conn online"><span class="dot"></span>在线</span>'
+      : '<span class="conn offline"><span class="dot"></span>离线</span>';
+    const lastSync = u.last_sync ? new Date(u.last_sync).toLocaleString() : '—';
+    return `
+    <tr>
+      <td>${esc(u.username)}</td>
+      <td>${esc(u.nickname) || '—'}</td>
+      <td>${connHtml}</td>
+      <td>${u.devices}</td>
+      <td>${lastSync}</td>
+      <td>${new Date(u.created_at).toLocaleString()}</td>
+      <td>
+        <button class="btn sm" onclick="showUserStats('${u.id}','${esc(u.username)}')"><svg class="ic sm"><use href="#i-chart"/></svg> 统计</button>
+        <button class="btn sm danger" onclick="delUser('${u.id}','${esc(u.username)}')"><svg class="ic sm"><use href="#i-trash"/></svg> 删除</button>
+      </td>
+    </tr>
+  `;
+  }).join('');
+}
+
+function openCreateUser() { $('#create-user-modal').classList.add('show'); $('#cu-hint').textContent = ''; }
+function closeCreateUser() { $('#create-user-modal').classList.remove('show'); }
+
+async function createUser() {
+  const username = $('#cu-user').value.trim();
+  const password = $('#cu-pass').value;
+  const nickname = $('#cu-nick').value.trim();
+  if (!username || !password) { $('#cu-hint').textContent = '请填写用户名和密码'; return; }
+  const r = await api('/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password, nickname }) });
+  if (r.ok) {
+    toast('用户创建成功', 'ok');
+    closeCreateUser();
+    $('#cu-user').value = ''; $('#cu-pass').value = ''; $('#cu-nick').value = '';
+    loadUsers();
+  } else {
+    $('#cu-hint').textContent = '✗ ' + (r.message || '创建失败');
+  }
+}
+
+async function delUser(id, username) {
+  if (!confirm('确定删除用户「' + username + '」及其全部数据？此操作不可恢复！')) return;
+  const r = await api('/users/' + id, { method: 'DELETE' });
+  if (r.ok) { toast('用户已删除', 'ok'); loadUsers(); loadStatus(); }
+  else toast(r.message || '删除失败', 'err');
+}
+
+async function showUserStats(id, username) {
+  const r = await api('/users/' + id + '/stats');
+  if (!r.ok) return;
+  const labels = { words: '生词本', wenyan: '文言文', todos: '待办', focus_records: '专注记录', errors: '错题', error_groups: '错题组' };
+  $('#user-stats-body').innerHTML = `
+    <p style="margin-bottom:12px;color:var(--text2)">用户：<b style="color:var(--text)">${esc(username)}</b></p>
+    ${Object.entries(r.counts).map(([k, v]) => `<div class="kv"><span class="k">${labels[k] || k}</span><span class="v">${v}</span></div>`).join('')}
+  `;
+  $('#user-stats-modal').classList.add('show');
+}
+function closeUserStats() { $('#user-stats-modal').classList.remove('show'); }
+
+// ===== 设备 =====
+async function loadDevices() {
+  const r = await api('/devices');
+  if (!r.ok) return;
+  const body = $('#devices-body');
+  const empty = $('#devices-empty');
+  if (!r.devices.length) { body.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  body.innerHTML = r.devices.map(d => `
+    <tr>
+      <td>${esc(d.name) || '—'}</td>
+      <td>${esc(d.platform) || '—'}</td>
+      <td>${esc(d.username) || '—'}</td>
+      <td>${d.last_seen ? new Date(d.last_seen).toLocaleString() : '—'}</td>
+      <td>${new Date(d.created_at).toLocaleString()}</td>
+    </tr>
+  `).join('');
+}
+
+// ===== 审计日志 =====
+async function loadLogs() {
+  const r = await api('/logs');
+  if (!r.ok) return;
+  const body = $('#logs-body');
+  const empty = $('#logs-empty');
+  if (!r.logs.length) { body.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  body.innerHTML = r.logs.map(l => {
+    const m = l.match(/^\[(.*?)\]\s*(.*)$/);
+    if (m) return `<div class="log-line"><span class="log-time">${esc(m[1])}</span>${esc(m[2])}</div>`;
+    return `<div class="log-line">${esc(l)}</div>`;
+  }).join('');
+}
+
+// ===== 总加载 =====
+function loadAll() {
+  if (!token) { showLogin(); return; }
+  showMain();
+  loadStatus();
+  loadUsers();
+  loadDevices();
+  loadLogs();
+  loadConfig();
+}
+
+// ===== 启动流程 =====
+(async () => {
+  try {
+    const cfg = await api('/config');
+    if (cfg.hasAdmin === false) {
+      // 首次安装：显示引导页
+      showSetup();
+      return;
+    }
+  } catch (e) {}
+  loadAll();
+})();
+setInterval(() => { if (token) loadStatus(); }, 15000); // 每 15 秒自动刷新状态
+</script>
+</body>
+</html>

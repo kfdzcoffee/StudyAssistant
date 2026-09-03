@@ -7,6 +7,58 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <!-- 线性图标库（Feather 风格，内联 SVG，离线可用） -->
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></symbol>
+    <symbol id="i-file-text" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></symbol>
+    <symbol id="i-trending" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></symbol>
+    <symbol id="i-grad" viewBox="0 0 24 24"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></symbol>
+    <symbol id="i-bar" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></symbol>
+    <symbol id="i-git" viewBox="0 0 24 24"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></symbol>
+    <symbol id="i-build" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></symbol>
+    <symbol id="i-zoom" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></symbol>
+    <symbol id="i-flag" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+    <symbol id="i-refresh-cw" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></symbol>
+    <symbol id="i-scan" viewBox="0 0 24 24"><polyline points="3 7 3 5 5 3 7 3"/><polyline points="17 3 19 3 21 5 21 7"/><polyline points="21 17 21 19 19 21 17 21"/><polyline points="7 21 5 21 3 19 3 17"/><line x1="7" y1="12" x2="17" y2="12"/></symbol>
+    <symbol id="i-scissors" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
+    <symbol id="i-zap" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+    <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+    <symbol id="i-arrow-right" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></symbol>
+    <symbol id="i-arrow-left" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+    <symbol id="i-crop" viewBox="0 0 24 24"><path d="M6.13 1L6 16a2 2 0 0 0 2 2h15"/><path d="M1 6.13L16 6a2 2 0 0 1 2 2v15"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></symbol>
+    <symbol id="i-paperclip" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></symbol>
+    <symbol id="i-rocket" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></symbol>
+    <symbol id="i-inbox" viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
+    <symbol id="i-folder-plus" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></symbol>
+    <symbol id="i-help-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+    <symbol id="i-tool" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></symbol>
+    <symbol id="i-scroll" viewBox="0 0 24 24"><path d="M8 21h12a2 2 0 0 0 2-2v-2H10v2a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v3h4"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/></symbol>
+    <symbol id="i-chevron-down" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></symbol>
+  </svg>
   <div id="app">
     <aside class="sidebar">
       <div class="brand">
@@ -14,18 +66,39 @@
         <div class="brand-text"><b>学习助手</b><span>Study Assistant</span></div>
       </div>
       <nav class="nav" id="nav">
-        <button class="nav-item active" data-view="home"><span class="ni">🏠</span><span>首页</span></button>
-        <button class="nav-item" data-view="chat"><span class="ni">💬</span><span>AI 助手</span></button>
-        <button class="nav-item" data-view="entry"><span class="ni">✍️</span><span>错题录入</span></button>
-        <button class="nav-item" data-view="essay"><span class="ni">📝</span><span>作文分析</span></button>
-        <button class="nav-item" data-view="score"><span class="ni">🎯</span><span>分数预测</span></button>
-        <button class="nav-item" data-view="college"><span class="ni">🎓</span><span>目标院校</span></button>
-        <button class="nav-item" data-view="stats"><span class="ni">📊</span><span>错题统计</span></button>
-        <button class="nav-item" data-view="archive"><span class="ni">📚</span><span>档案编辑</span></button>
-        <button class="nav-item" data-view="git"><span class="ni">🔁</span><span>Git 同步</span></button>
-        <button class="nav-item" data-view="preview"><span class="ni">🌐</span><span>网页预览</span></button>
-        <button class="nav-item" data-view="users"><span class="ni">👥</span><span>用户</span></button>
-        <button class="nav-item" data-view="settings"><span class="ni">⚙️</span><span>设置</span></button>
+        <button class="nav-item active" data-view="home"><svg class="ni"><use href="#i-home"/></svg><span>首页</span></button>
+
+        <details class="nav-group" open>
+          <summary class="nav-group-title"><svg class="ni"><use href="#i-grad"/></svg><span>学习</span><svg class="ni nav-arrow"><use href="#i-chevron-down"/></svg></summary>
+          <button class="nav-item" data-view="chat"><svg class="ni"><use href="#i-chat"/></svg><span>AI 助手</span></button>
+          <button class="nav-item" data-view="entry"><svg class="ni"><use href="#i-edit"/></svg><span>错题录入</span></button>
+          <button class="nav-item" data-view="essay"><svg class="ni"><use href="#i-file-text"/></svg><span>作文分析</span></button>
+          <button class="nav-item" data-view="score"><svg class="ni"><use href="#i-trending"/></svg><span>分数预测</span></button>
+          <button class="nav-item" data-view="college"><svg class="ni"><use href="#i-grad"/></svg><span>目标院校</span></button>
+          <button class="nav-item" data-view="todos"><svg class="ni"><use href="#i-check"/></svg><span>任务待办</span></button>
+        </details>
+
+        <details class="nav-group" open>
+          <summary class="nav-group-title"><svg class="ni"><use href="#i-book"/></svg><span>积累</span><svg class="ni nav-arrow"><use href="#i-chevron-down"/></svg></summary>
+          <button class="nav-item" data-view="vocab"><svg class="ni"><use href="#i-book"/></svg><span>生词本</span></button>
+          <button class="nav-item" data-view="review"><svg class="ni"><use href="#i-refresh-cw"/></svg><span>词语复习</span></button>
+          <button class="nav-item" data-view="wenyan"><svg class="ni"><use href="#i-scroll"/></svg><span>文言文</span></button>
+        </details>
+
+        <details class="nav-group" open>
+          <summary class="nav-group-title"><svg class="ni"><use href="#i-folder"/></svg><span>资料</span><svg class="ni nav-arrow"><use href="#i-chevron-down"/></svg></summary>
+          <button class="nav-item" data-view="papers"><svg class="ni"><use href="#i-file"/></svg><span>试卷</span></button>
+          <button class="nav-item" data-view="stats"><svg class="ni"><use href="#i-bar"/></svg><span>错题管理</span></button>
+          <button class="nav-item" data-view="archive"><svg class="ni"><use href="#i-folder"/></svg><span>档案编辑</span></button>
+        </details>
+
+        <details class="nav-group" open>
+          <summary class="nav-group-title"><svg class="ni"><use href="#i-settings"/></svg><span>系统</span><svg class="ni nav-arrow"><use href="#i-chevron-down"/></svg></summary>
+          <button class="nav-item" data-view="git"><svg class="ni"><use href="#i-git"/></svg><span>Git 同步</span></button>
+          <button class="nav-item" data-view="preview"><svg class="ni"><use href="#i-globe"/></svg><span>网页预览</span></button>
+          <button class="nav-item" data-view="users"><svg class="ni"><use href="#i-users"/></svg><span>用户</span></button>
+          <button class="nav-item" data-view="settings"><svg class="ni"><use href="#i-settings"/></svg><span>设置</span></button>
+        </details>
       </nav>
       <div class="sidebar-foot">
         <div class="sf-top">
@@ -43,8 +116,8 @@
         <div class="tb-left"><span class="tb-dot"></span><span class="tb-title" id="tb-title">首页</span></div>
         <div class="tb-right">
           <span class="tb-path" id="tb-path" title="工作目录"></span>
-          <button class="btn-mini" id="tb-build">🏗️ 构建知识库</button>
-          <button class="btn-mini" id="tb-refresh" title="刷新页面以应用配置">🔄 刷新</button>
+          <button class="btn-mini" id="tb-build"><svg class="ic"><use href="#i-build"/></svg> 构建知识库</button>
+          <button class="btn-mini" id="tb-refresh" title="刷新页面以应用配置"><svg class="ic"><use href="#i-refresh"/></svg> 刷新</button>
         </div>
       </header>
       <!-- ===== 首页：问候 + 倒计时 + 鸡汤 + 专注计时 ===== -->
@@ -58,26 +131,44 @@
             <div class="cd-date" id="cd-date"></div>
           </div>
           <div class="card home-quote">
-            <div class="quote-emoji" id="quote-emoji">💪</div>
             <p class="quote-text" id="home-quote">好好学习，天天向上。</p>
-            <button class="btn-mini" id="quote-refresh">🍀 换一句</button>
+            <button class="btn-mini" id="quote-refresh"><svg class="ic"><use href="#i-refresh-cw"/></svg> 换一句</button>
+          </div>
+        </div>
+        <!-- 目标院校轮播 -->
+        <div class="card home-college">
+          <div class="card-head">
+            <span><svg class="ic"><use href="#i-target"/></svg> 目标院校</span>
+            <button class="btn-mini" id="home-college-more"><svg class="ic"><use href="#i-arrow-right"/></svg> 查看全部</button>
+          </div>
+          <div class="college-carousel" id="college-carousel">
+            <div class="hint">暂无目标院校，去「目标院校」添加吧。</div>
+          </div>
+        </div>
+        <!-- 首页待办：可直接勾选完成 -->
+        <div class="card home-todos">
+          <div class="card-head">
+            <span><svg class="ic"><use href="#i-check"/></svg> 今日待办</span>
+            <button class="btn-mini" id="home-todos-more"><svg class="ic"><use href="#i-list"/></svg> 全部待办</button>
+          </div>
+          <div id="home-todos-list" class="home-todos-list">
+            <div class="hint">暂无待办，去「任务待办」添加吧。</div>
           </div>
         </div>
         <div class="card focus-card">
           <div class="card-head">
-            <span>⏱ 专注计时（本次学习时长）</span>
-            <button class="btn-mini" id="focus-enlarge">🔍 放大</button>
-          </div>
-          <div id="focus-clock" class="flip-clock"></div>
+            <span><svg class="ic"><use href="#i-flag"/></svg> 专注计时（本次学习时长）</span>
+            <button class="btn-mini" id="focus-enlarge"><svg class="ic"><use href="#i-zoom"/></svg> 放大</button>
+          </div>          <div id="focus-clock" class="flip-clock"></div>
           <div class="focus-controls">
-            <button class="btn-primary" id="focus-start">▶ 开始</button>
-            <button class="btn-outline" id="focus-pause">⏸ 暂停</button>
-            <button class="btn-outline" id="focus-reset">↺ 重置</button>
-            <button class="btn-outline warn" id="focus-record">🏁 结束并记录</button>
+            <button class="btn-primary" id="focus-start"><svg class="ic"><use href="#i-play"/></svg> 开始</button>
+            <button class="btn-outline" id="focus-pause"><svg class="ic"><use href="#i-pause"/></svg> 暂停</button>
+            <button class="btn-outline" id="focus-reset"><svg class="ic"><use href="#i-reset"/></svg> 重置</button>
+            <button class="btn-outline warn" id="focus-record"><svg class="ic"><use href="#i-flag"/></svg> 结束并记录</button>
           </div>
           <div class="focus-info" id="focus-info">尚未开始</div>
           <div class="records-block">
-            <div class="card-head sub records-head"><span>专注记录</span><button class="btn-mini warn" id="focus-clear">🗑 清空全部</button></div>
+            <div class="card-head sub records-head"><span>专注记录</span><button class="btn-mini warn" id="focus-clear"><svg class="ic"><use href="#i-trash"/></svg> 清空全部</button></div>
             <div id="focus-summary" class="focus-summary"></div>
             <div id="focus-records" class="records-list"></div>
           </div>
@@ -97,17 +188,17 @@
           <div class="chat-log" id="chat-log"></div>
           <div class="chat-tools">
             <label class="chip">
-              <input type="checkbox" id="chat-attach" /> 📷 附图
+              <input type="checkbox" id="chat-attach" /> <svg class="ic"><use href="#i-image"/></svg> 附图
               <input type="file" id="chat-img" accept="image/*" hidden />
             </label>
-            <button class="btn-outline" id="chat-ocr">📝 OCR 识别文字</button>
-            <button class="btn-outline" id="chat-img-edit">✂️ 编辑图片</button>
+            <button class="btn-outline" id="chat-ocr"><svg class="ic"><use href="#i-scan"/></svg> OCR 识别文字</button>
+            <button class="btn-outline" id="chat-img-edit"><svg class="ic"><use href="#i-scissors"/></svg> 编辑图片</button>
             <label class="chip" title="勾选后上传图片自动识别文字填入输入框"><input type="checkbox" id="chat-ocr-auto" /> 自动OCR</label>
             <select id="chat-mode" class="chip-select">
-              <option value="chat">💬 自由问答</option>
-              <option value="error-entry">📥 错题录入</option>
-              <option value="essay-analysis">📝 作文分析</option>
-              <option value="score-predict">🎯 分数预测</option>
+              <option value="chat">自由问答</option>
+              <option value="error-entry">错题录入</option>
+              <option value="essay-analysis">作文分析</option>
+              <option value="score-predict">分数预测</option>
             </select>
           </div>
           <div id="chat-img-preview" class="img-preview hidden"></div>
@@ -140,13 +231,35 @@
             </div>            <div class="field" id="entry-newsubj-field" style="display:none">
               <label>新科目名称</label>
               <input id="entry-newsubj" placeholder="例：物理" />
+              <label class="chk-row" style="margin-top:6px"><input type="checkbox" id="entry-newsubj-essay" /> 该科目有作文（档案将包含作文记录）</label>
             </div>            <div class="field">
               <label>来源 / 考试</label>
               <input id="entry-source" placeholder="例：2026海淀高三上期末" />
             </div>
             <div class="field">
+              <label>关联试卷（可选）</label>
+              <select id="entry-paper">
+                <option value="">不关联试卷</option>
+              </select>
+            </div>
+            <div class="field">
               <label>录入日期</label>
               <input id="entry-date" type="date" />
+            </div>
+            <div class="field">
+              <label>熟悉程度</label>
+              <select id="entry-familiarity">
+                <option value="unfamiliar">生疏</option>
+                <option value="vague">模糊</option>
+                <option value="medium" selected>中等（默认）</option>
+                <option value="familiar">熟悉</option>
+                <option value="mastered">掌握</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>错题组</label>
+              <select id="entry-group">
+              </select>
             </div>
             <div class="field">
               <label>题目内容</label>
@@ -160,18 +273,27 @@
               <label>附图识别</label>
               <div class="img-row">
                 <input type="file" id="entry-img" accept="image/*" hidden />
-                <button class="btn-outline" id="entry-img-btn">📷 选择 / 拍照图片</button>
-                <button class="btn-outline" id="entry-img-edit">✂️ 编辑</button>
-                <button class="btn-outline" id="entry-ocr">📝 OCR 识别文字</button>
+                <button class="btn-outline" id="entry-img-btn"><svg class="ic"><use href="#i-image"/></svg> 选择 / 拍照图片</button>
+                <button class="btn-outline" id="entry-img-edit"><svg class="ic"><use href="#i-scissors"/></svg> 编辑</button>
+                <button class="btn-outline" id="entry-ocr"><svg class="ic"><use href="#i-scan"/></svg> OCR 识别文字</button>
                 <label class="chip" title="勾选后上传图片自动识别文字填入题目"><input type="checkbox" id="entry-ocr-auto" /> 自动OCR</label>
                 <span id="entry-img-name"></span>
               </div>
               <div id="entry-img-preview" class="img-preview hidden"></div>
             </div>
+            <div class="field">
+              <label>附件（可选，随错题保存，自动压缩）</label>
+              <div class="img-row">
+                <input type="file" id="entry-attach" accept="image/*" multiple hidden />
+                <button class="btn-outline" id="entry-attach-btn"><svg class="ic"><use href="#i-paperclip"/></svg> 添加附件图片</button>
+                <span id="entry-attach-name"></span>
+              </div>
+              <div id="entry-attach-preview" class="attach-preview"></div>
+            </div>
             <div class="field actions">
-              <button class="btn-primary" id="entry-draft">📥 加入待录入区</button>
-              <button class="btn-outline" id="entry-submit">⚡ 直接整理并录入</button>
-              <button class="btn-outline" id="entry-manual">✍️ 手动录入</button>
+              <button class="btn-primary" id="entry-draft"><svg class="ic"><use href="#i-inbox"/></svg> 加入待录入区</button>
+              <button class="btn-outline" id="entry-submit"><svg class="ic"><use href="#i-zap"/></svg> 直接整理并录入</button>
+              <button class="btn-outline" id="entry-manual"><svg class="ic"><use href="#i-edit"/></svg> 手动录入</button>
               <button class="btn-outline" id="entry-clear">清空</button>
             </div>
           </div>
@@ -180,19 +302,19 @@
             <div id="entry-proc" class="proc-log"></div>
             <div id="entry-result" class="md-body"></div>
             <div id="entry-post" class="post-btns hidden">
-              <button class="btn-primary" id="entry-git">🔁 是否上传 GitHub？</button>
+              <button class="btn-primary" id="entry-git"><svg class="ic"><use href="#i-upload"/></svg> 是否上传 GitHub？</button>
             </div>
           </div>
         </div>
 
         <!-- 待录入区：一次可录入多道，一键全部入库 -->
         <div class="card">
-          <div class="card-head"><span>📥 待录入区（可一次录入多道）</span><span class="hint" id="queue-count">0 条草稿</span></div>
+          <div class="card-head"><span><svg class="ic"><use href="#i-inbox"/></svg> 待录入区（可一次录入多道）</span><span class="hint" id="queue-count">0 条草稿</span></div>
           <div id="entry-queue" class="queue-list">
             <div class="hint">先在左侧录入题目并点击「加入待录入区」，AI 生成草稿后在此汇总，可一键全部写入错题库。</div>
           </div>
           <div class="queue-actions">
-            <button class="btn-primary" id="queue-confirm-all">✅ 一键确认全部录入错题库</button>
+            <button class="btn-primary" id="queue-confirm-all"><svg class="ic"><use href="#i-check"/></svg> 一键确认全部录入错题库</button>
             <button class="btn-outline" id="queue-clear">清空待录入区</button>
           </div>
           <div id="queue-proc" class="proc-log"></div>
@@ -211,9 +333,20 @@
               <label>科目</label>
               <select id="essay-subject"><option value="语文">语文（满分50）</option><option value="英语">英语（满分20）</option></select>
             </div>
+            <div class="form-grid-inline">
+              <div class="field">
+                <label>地区（可选）</label>
+                <input id="essay-region" placeholder="例：北京" />
+              </div>
+              <div class="field">
+                <label>总分（可选）</label>
+                <input id="essay-total" type="number" min="1" max="150" placeholder="默认按科目" />
+              </div>
+            </div>
+            <p class="hint">地区与总分用于 AI 评分时参考当地评分标准；留空则按所选科目的默认满分。</p>
             <div class="field">
               <label>作文题目 / 来源（可选）</label>
-              <input id="essay-topic" placeholder="例：2026海淀期末《快与慢》" />
+              <textarea id="essay-topic" rows="2" style="resize:both;min-height:64px" placeholder="例：2026海淀期末《快与慢》"></textarea>
             </div>
             <div class="field">
               <label>作文正文</label>
@@ -223,22 +356,35 @@
               <label>附图识别</label>
               <div class="img-row">
                 <input type="file" id="essay-img" accept="image/*" hidden />
-                <button class="btn-outline" id="essay-img-btn">📷 选择 / 拍照图片</button>
-                <button class="btn-outline" id="essay-img-edit">✂️ 编辑</button>
-                <button class="btn-outline" id="essay-ocr">📝 OCR 识别文字</button>
+                <button class="btn-outline" id="essay-img-btn"><svg class="ic"><use href="#i-image"/></svg> 选择 / 拍照图片</button>
+                <button class="btn-outline" id="essay-img-edit"><svg class="ic"><use href="#i-scissors"/></svg> 编辑</button>
+                <button class="btn-outline" id="essay-ocr"><svg class="ic"><use href="#i-scan"/></svg> OCR 识别文字</button>
                 <label class="chip" title="勾选后上传图片自动识别文字填入正文"><input type="checkbox" id="essay-ocr-auto" /> 自动OCR</label>
                 <span id="essay-img-name"></span>
               </div>
               <div id="essay-img-preview" class="img-preview hidden"></div>
             </div>
             <div class="field actions">
-              <button class="btn-primary" id="essay-submit">🚀 开始分析</button>
+              <label class="chip" title="勾选后 AI 先生成草稿并展示「改变的内容」，确认/编辑后再合并写入档案；不勾选则 AI 直接写入（每次写入仍需确认）"><input type="checkbox" id="essay-draft-mode" checked /> 先预览草稿再合并</label>
+              <button class="btn-primary" id="essay-submit"><svg class="ic"><use href="#i-rocket"/></svg> 开始分析</button>
             </div>
           </div>
           <div class="card result-card">
             <div class="card-head"><span>分析过程 & 结果</span><span id="essay-status" class="status-dot"></span></div>
             <div id="essay-proc" class="proc-log"></div>
             <div id="essay-result" class="md-body"></div>
+            <!-- 作文草稿：改变的内容 · 展示版（预览 / 编辑 / 合并到文档） -->
+            <div id="essay-draft" class="hidden" style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
+              <div class="card-head"><span>改变的内容 · 展示版</span></div>
+              <div id="essay-draft-meta" class="hint" style="margin-bottom:6px"></div>
+              <div id="essay-draft-view" class="md-body" style="max-height:420px;overflow-y:auto;background:var(--card-2);border:1px solid var(--border);border-radius:10px;padding:12px"></div>
+              <textarea id="essay-draft-edit" class="editor" spellcheck="false" style="display:none;min-height:320px"></textarea>
+              <div class="field actions" style="margin-top:12px">
+                <button class="btn-outline" id="essay-draft-edit-btn"><svg class="ic"><use href="#i-edit"/></svg> 编辑</button>
+                <button class="btn-outline hidden" id="essay-draft-cancel-btn">取消编辑</button>
+                <button class="btn-primary" id="essay-draft-merge"><svg class="ic"><use href="#i-download"/></svg> 合并到文档中</button>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -250,7 +396,7 @@
           <p>AI 读取各科档案与现有预测，重新估算高考分数并更新 分数预测.md</p>
         </div>
         <div class="card center-card">
-          <button class="btn-primary big" id="score-run">🎯 开始预测</button>
+          <button class="btn-primary big" id="score-run"><svg class="ic ic-lg"><use href="#i-trending"/></svg> 开始预测</button>
           <p class="hint">执行前会读取：README / 各科档案 / 分数预测.md；写文件会先征求同意。</p>
           <div id="score-proc" class="proc-log"></div>
           <div id="score-result" class="md-body"></div>
@@ -264,11 +410,11 @@
           <p>编辑首页（README）的目标院校（可上传院校图片、填写官网与招生办网址）与个人介绍</p>
         </div>
         <div class="card">
-          <div class="card-head"><span>🎓 目标院校</span><button class="btn-mini" id="college-add">＋ 添加院校</button></div>
+          <div class="card-head"><span><svg class="ic"><use href="#i-grad"/></svg> 目标院校</span><button class="btn-mini" id="college-add"><svg class="ic"><use href="#i-plus"/></svg> 添加院校</button></div>
           <div id="college-list"></div>
         </div>
         <div class="card">
-          <div class="card-head"><span>👤 关于作者 / 介绍</span></div>
+          <div class="card-head"><span><svg class="ic"><use href="#i-users"/></svg> 关于作者 / 介绍</span></div>
           <div class="field">
             <label>个人介绍</label>
             <textarea id="college-intro" rows="2" placeholder="一句话介绍自己（如：高三在读，目标人大 / 法大）。"></textarea>
@@ -280,27 +426,499 @@
             <div class="ws-row"><input id="college-blog-text" class="git-msg" style="flex:none;width:130px" placeholder="显示名" /><input id="college-blog-url" class="git-msg" placeholder="https://…" /></div>
           </div>
           <div class="field actions">
-            <button class="btn-primary" id="college-save">💾 保存到首页</button>
-            <button class="btn-outline" id="college-reload">↺ 重新读取</button>
+            <button class="btn-primary" id="college-save"><svg class="ic"><use href="#i-download"/></svg> 保存到首页</button>
+            <button class="btn-outline" id="college-reload"><svg class="ic"><use href="#i-refresh"/></svg> 重新读取</button>
           </div>
           <div id="college-proc" class="proc-log"></div>
         </div>
       </section>
 
-      <!-- ===== 错题统计 ===== -->
+      <!-- ===== 任务待办 ===== -->
+      <section class="view" id="view-todos">
+        <div class="view-head">
+          <h1>任务待办</h1>
+          <p>管理你的学习任务清单 · 未完成项会显示在首页，可直接勾选完成</p>
+        </div>
+        <div class="card">
+          <div class="card-head"><span><svg class="ic"><use href="#i-plus"/></svg> 新增待办</span></div>
+          <div class="todo-add-row">
+            <input id="todo-text" class="git-msg" placeholder="输入待办内容，如：完成数学错题 20 道" />
+            <select id="todo-priority" class="chip-select">
+              <option value="high">高</option>
+              <option value="normal" selected>中</option>
+              <option value="low">低</option>
+            </select>
+            <input id="todo-due" type="date" class="git-msg" style="max-width:150px" />
+            <select id="todo-recurring" class="chip-select" title="循环任务：完成后经过一个周期自动重置为未完成">
+              <option value="">不循环</option>
+              <option value="daily">每天</option>
+              <option value="weekly">每周</option>
+              <option value="biweekly">每两周</option>
+              <option value="monthly">每月</option>
+            </select>
+            <button class="btn-primary" id="todo-add"><svg class="ic"><use href="#i-plus"/></svg> 添加</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <span><svg class="ic"><use href="#i-list"/></svg> 待办清单</span>
+            <span class="hint" id="todo-summary"></span>
+          </div>
+          <div id="todo-list" class="todo-list">
+            <div class="hint">暂无待办。</div>
+          </div>
+          <div id="todo-calendar" class="todo-calendar hidden">
+            <div class="cal-head">
+              <button class="btn-mini" id="cal-prev"><svg class="ic"><use href="#i-arrow-left"/></svg></button>
+              <span class="cal-title" id="cal-title"></span>
+              <button class="btn-mini" id="cal-next"><svg class="ic"><use href="#i-arrow-right"/></svg></button>
+              <button class="btn-mini" id="cal-today">今天</button>
+            </div>
+            <div class="cal-grid" id="cal-grid"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 生词本（英语单词生义） ===== -->
+      <section class="view" id="view-vocab">
+        <div class="view-head">
+          <h1>生词本</h1>
+          <p>记录英语单词的生义与生词 · 可勾选组成生词卷导出为 Word</p>
+        </div>
+        <div class="card">
+          <div class="vocab-toolbar">
+            <div class="vocab-search">
+              <svg class="ic"><use href="#i-search"/></svg>
+              <input id="vocab-search" class="git-msg" placeholder="搜索英文或中文释义…" />
+            </div>
+            <div class="vocab-filter" id="vocab-filter">
+              <button class="vf-btn active" data-f="all">全部</button>
+              <button class="vf-btn" data-f="word">单词</button>
+              <button class="vf-btn" data-f="phrase">短语</button>
+            </div>
+            <span class="tb-spacer"></span>
+            <span class="hint" id="vocab-count">共 0 个单词</span>
+            <button class="btn-outline" id="vocab-export"><svg class="ic"><use href="#i-download"/></svg> 导出生词卷</button>
+            <button class="btn-primary" id="vocab-add"><svg class="ic"><use href="#i-plus"/></svg> 添加单词</button>
+          </div>
+          <div id="vocab-list" class="vocab-list">
+            <div class="hint">暂无单词，点击「添加单词」开始记录。</div>
+          </div>
+        </div>
+
+        <!-- 添加/编辑单词弹窗 -->
+        <div id="vocab-modal" class="modal-overlay hidden">
+          <div class="modal">
+            <div class="modal-head"><span id="vocab-modal-title">添加单词</span><button class="modal-close" id="vocab-modal-close">✕</button></div>
+            <div class="wizard-body">
+              <div class="field">
+                <label>英文单词 / 短语</label>
+                <div class="ws-row">
+                  <input id="vocab-word" placeholder="例：abandon" style="flex:1" />
+                  <select id="vocab-type" class="chip-select">
+                    <option value="word">单词</option>
+                    <option value="phrase">短语</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field" id="vocab-linked-field">
+                <label>关联单词（短语可关联到某个单词，可选）</label>
+                <input id="vocab-linked" placeholder="例：give（关联 give up）" />
+              </div>
+              <div class="field">
+                <label id="vocab-senses-label">生义（词性 + 中文释义 + 例句）</label>
+                <div id="vocab-senses" class="vocab-senses"></div>
+                <button class="btn-mini" id="vocab-sense-add" title="一个单词可录入多个词性：点击后添加一条生义并选择不同词性"><svg class="ic"><use href="#i-plus"/></svg> 添加一条生义</button>
+              </div>
+              <div class="field" id="vocab-other-field" style="display:none">
+                <label>其它词性的单词（可选，补充词族：abandon → abandonment 名词 / abandoned 形容词）</label>
+                <div id="vocab-others" class="vocab-senses"></div>
+                <button class="btn-mini" id="vocab-other-add"><svg class="ic"><use href="#i-plus"/></svg> 添加其它词性</button>
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button class="btn-outline" id="vocab-modal-cancel">取消</button>
+              <button class="btn-primary" id="vocab-modal-save"><svg class="ic"><use href="#i-download"/></svg> 保存</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 单词详情弹窗 -->
+        <div id="vocab-detail-modal" class="modal-overlay hidden">
+          <div class="modal">
+            <div class="modal-head"><span>单词详情</span><button class="modal-close" id="vocab-detail-close">✕</button></div>
+            <div class="wizard-body">
+              <div class="vocab-detail-word" id="vocab-detail-word"></div>
+              <div class="vocab-detail-senses" id="vocab-detail-senses"></div>
+              <!-- 复习进度 -->
+              <div class="vocab-detail-review" id="vocab-detail-review"></div>
+            </div>
+            <div class="modal-actions">
+              <button class="btn-outline warn" id="vocab-detail-delete"><svg class="ic"><use href="#i-trash"/></svg> 删除</button>
+              <button class="btn-outline" id="vocab-detail-edit"><svg class="ic"><use href="#i-edit"/></svg> 编辑</button>
+              <button class="btn-outline" id="vocab-detail-close2">关闭</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 生词卷导出弹窗 -->
+        <div id="vocab-export-modal" class="modal-overlay hidden">
+          <div class="modal">
+            <div class="modal-head"><span>导出生词卷</span><button class="modal-close" id="vocab-export-close">✕</button></div>
+            <div class="wizard-body">
+              <div class="field">
+                <label>选择单词（已选 <b id="vocab-export-count">0</b> 个）</label>
+                <div id="vocab-export-select" class="vocab-export-select"></div>
+              </div>
+              <div class="field">
+                <label>随机抽选数量（留空则全部导出）</label>
+                <input id="vocab-export-random" type="number" min="1" placeholder="留空 = 全部" />
+              </div>
+              <div class="field">
+                <label>题目形式</label>
+                <select id="vocab-export-mode">
+                  <option value="en">给出英文，填中文</option>
+                  <option value="zh">给出中文，填英文</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="chip"><input type="checkbox" id="vocab-export-answer" /> 附带答案（答案附在最后一页）</label>
+              </div>
+              <div class="field">
+                <label>卷子标题</label>
+                <input id="vocab-export-title" placeholder="例：英语生词卷" />
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button class="btn-outline" id="vocab-export-cancel">取消</button>
+              <button class="btn-primary" id="vocab-export-go"><svg class="ic"><use href="#i-download"/></svg> 导出 Word</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 词语复习（艾宾浩斯遗忘曲线） ===== -->
+      <section class="view" id="view-review">
+        <div class="view-head">
+          <h1>词语复习</h1>
+          <p>基于艾宾浩斯遗忘曲线安排复习计划 · 拼写错误将重置复习进度</p>
+        </div>
+
+        <!-- 概览卡片 -->
+        <div class="review-cards" id="review-cards"></div>
+
+        <!-- 今日复习 -->
+        <div class="card">
+          <div class="review-toolbar">
+            <h2 class="card-title">今日待复习</h2>
+            <span class="tb-spacer"></span>
+            <button class="btn-outline" id="review-export"><svg class="ic"><use href="#i-download"/></svg> 导出复习卷</button>
+            <button class="btn-primary" id="review-start"><svg class="ic"><use href="#i-play"/></svg> 开始复习</button>
+          </div>
+          <div id="review-due-list" class="review-due-list">
+            <div class="hint">加载中…</div>
+          </div>
+        </div>
+
+        <!-- 复习进度总览 -->
+        <div class="card">
+          <h2 class="card-title">复习进度</h2>
+          <div id="review-stage-list" class="review-stage-list"></div>
+        </div>
+
+        <!-- 复习模式弹窗 -->
+        <div id="review-modal" class="modal-overlay hidden">
+          <div class="modal review-modal">
+            <div class="modal-head"><span id="review-modal-title">词语复习</span><button class="modal-close" id="review-modal-close">✕</button></div>
+            <div class="wizard-body">
+              <div class="review-mode-row" id="review-mode-row">
+                <button class="review-mode-btn active" data-mode="en">给出英文 · 写中文</button>
+                <button class="review-mode-btn" data-mode="zh">给出中文 · 拼英文</button>
+              </div>
+              <div class="review-progress"><div class="review-progress-bar" id="review-progress-bar"></div></div>
+              <div class="review-progress-text" id="review-progress-text">0 / 0</div>
+              <div class="review-card" id="review-card"></div>
+              <div class="review-input-row" id="review-input-row">
+                <input id="review-input" class="git-msg" placeholder="输入你的答案…" autocomplete="off" autocapitalize="off" spellcheck="false" />
+                <button class="btn-primary" id="review-submit"><svg class="ic"><use href="#i-check"/></svg> 提交</button>
+              </div>
+              <div class="review-feedback" id="review-feedback"></div>
+            </div>
+            <div class="modal-actions">
+              <button class="btn-outline" id="review-modal-cancel">结束复习</button>
+              <button class="btn-primary hidden" id="review-next"><svg class="ic"><use href="#i-arrow-right"/></svg> 下一题</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 复习卷导出弹窗 -->
+        <div id="review-export-modal" class="modal-overlay hidden">
+          <div class="modal">
+            <div class="modal-head"><span>导出复习卷</span><button class="modal-close" id="review-export-close">✕</button></div>
+            <div class="wizard-body">
+              <div class="field">
+                <label>选择单词（已选 <b id="review-export-count">0</b> 个）</label>
+                <div id="review-export-select" class="vocab-export-select"></div>
+              </div>
+              <div class="field">
+                <label>题目形式</label>
+                <select id="review-export-mode">
+                  <option value="en">给出英文，填中文</option>
+                  <option value="zh">给出中文，填英文</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="chip"><input type="checkbox" id="review-export-answer" /> 附带答案（答案附在最后一页）</label>
+              </div>
+              <div class="field">
+                <label>卷子标题</label>
+                <input id="review-export-title" placeholder="例：词语复习卷" />
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button class="btn-outline" id="review-export-cancel">取消</button>
+              <button class="btn-primary" id="review-export-go"><svg class="ic"><use href="#i-download"/></svg> 导出 Word</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 文言文生义 ===== -->
+      <section class="view" id="view-wenyan">
+        <div class="view-head">
+          <h1>文言文生义</h1>
+          <p>记录文言文字/词的生义与例句 · 可勾选导出为 Word</p>
+        </div>
+        <div class="card">
+          <div class="vocab-toolbar">
+            <div class="vocab-search">
+              <svg class="ic"><use href="#i-search"/></svg>
+              <input id="wenyan-search" class="git-msg" placeholder="搜索字/词或释义…" />
+            </div>
+            <div class="vocab-filter" id="wenyan-filter">
+              <button class="vf-btn active" data-f="all">全部</button>
+              <button class="vf-btn" data-f="字">字</button>
+              <button class="vf-btn" data-f="词">词</button>
+            </div>
+            <span class="tb-spacer"></span>
+            <span class="hint" id="wenyan-count">共 0 个字/词</span>
+            <button class="btn-outline" id="wenyan-export"><svg class="ic"><use href="#i-download"/></svg> 导出</button>
+            <button class="btn-primary" id="wenyan-add"><svg class="ic"><use href="#i-plus"/></svg> 录入</button>
+          </div>
+          <div id="wenyan-list" class="wenyan-list">
+            <div class="hint">暂无记录，点击「录入」开始。</div>
+          </div>
+        </div>
+
+        <!-- 添加/编辑文言文弹窗 -->
+        <div id="wenyan-modal" class="modal-overlay hidden">
+          <div class="modal">
+            <div class="modal-head"><span id="wenyan-modal-title">录入字/词</span><button class="modal-close" id="wenyan-modal-close">✕</button></div>
+            <div class="wizard-body">
+              <div class="field">
+                <label>字 / 词</label>
+                <div class="ws-row">
+                  <input id="wenyan-char" placeholder="例：之" style="flex:1" />
+                  <select id="wenyan-type" class="chip-select">
+                    <option value="字">字</option>
+                    <option value="词">词</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field">
+                <label>生义（可添加例句及来源）</label>
+                <div id="wenyan-senses" class="wenyan-senses"></div>
+                <button class="btn-mini" id="wenyan-sense-add"><svg class="ic"><use href="#i-plus"/></svg> 添加一条生义</button>
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button class="btn-outline" id="wenyan-modal-cancel">取消</button>
+              <button class="btn-primary" id="wenyan-modal-save"><svg class="ic"><use href="#i-download"/></svg> 保存</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 文言文详情弹窗 -->
+        <div id="wenyan-detail-modal" class="modal-overlay hidden">
+          <div class="modal">
+            <div class="modal-head"><span>字/词详情</span><button class="modal-close" id="wenyan-detail-close">✕</button></div>
+            <div class="wizard-body">
+              <div class="wenyan-detail-char" id="wenyan-detail-char"></div>
+              <div class="wenyan-detail-senses" id="wenyan-detail-senses"></div>
+            </div>
+            <div class="modal-actions">
+              <button class="btn-outline warn" id="wenyan-detail-delete"><svg class="ic"><use href="#i-trash"/></svg> 删除</button>
+              <button class="btn-outline" id="wenyan-detail-edit"><svg class="ic"><use href="#i-edit"/></svg> 编辑</button>
+              <button class="btn-outline" id="wenyan-detail-close2">关闭</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 文言文导出弹窗 -->
+        <div id="wenyan-export-modal" class="modal-overlay hidden">
+          <div class="modal">
+            <div class="modal-head"><span>导出文言文生义</span><button class="modal-close" id="wenyan-export-close">✕</button></div>
+            <div class="wizard-body">
+              <div class="field">
+                <label>选择字/词（已选 <b id="wenyan-export-count">0</b> 个）</label>
+                <div id="wenyan-export-select" class="wenyan-export-select"></div>
+              </div>
+              <div class="field">
+                <label>卷子标题</label>
+                <input id="wenyan-export-title" placeholder="例：文言文生义" />
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button class="btn-outline" id="wenyan-export-cancel">取消</button>
+              <button class="btn-primary" id="wenyan-export-go"><svg class="ic"><use href="#i-download"/></svg> 导出 Word</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 试卷管理 ===== -->
+      <section class="view" id="view-papers">
+        <div class="view-head">
+          <h1>试卷管理</h1>
+          <p>添加试卷（含本体与可选答题卡）· 关联错题 · AI 试卷分析</p>
+        </div>
+        <div class="card">
+          <div class="card-head"><span><svg class="ic"><use href="#i-file"/></svg> 试卷列表</span><button class="btn-mini" id="paper-add"><svg class="ic"><use href="#i-plus"/></svg> 添加试卷</button></div>
+          <div id="paper-list" class="paper-list">
+            <div class="hint">暂无试卷，点击「添加试卷」开始。</div>
+          </div>
+        </div>
+
+        <!-- 添加/编辑试卷弹窗 -->
+        <div id="paper-modal" class="modal-overlay hidden">
+          <div class="modal">
+            <div class="modal-head"><span id="paper-modal-title">添加试卷</span><button class="modal-close" id="paper-modal-close">✕</button></div>
+            <div class="wizard-body">
+              <div class="field">
+                <label>试卷名称</label>
+                <input id="paper-name" placeholder="例：2026 海淀高三上期末数学" />
+              </div>
+              <div class="field">
+                <label>科目</label>
+                <select id="paper-subject">
+                  <option value="语文">语文</option>
+                  <option value="数学" selected>数学</option>
+                  <option value="英语">英语</option>
+                  <option value="地理">地理</option>
+                  <option value="历史">历史</option>
+                  <option value="政治">政治</option>
+                  <option value="物理">物理</option>
+                  <option value="化学">化学</option>
+                  <option value="生物">生物</option>
+                  <option value="其他">其他</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>考试日期</label>
+                <input id="paper-date" type="date" />
+              </div>
+              <div class="field">
+                <label class="chip"><input type="checkbox" id="paper-has-answer" /> 本试卷有答题卡</label>
+              </div>
+              <div class="field">
+                <label>试卷本体图片</label>
+                <div class="img-row">
+                  <input type="file" id="paper-img" accept="image/*" hidden />
+                  <button class="btn-outline" id="paper-img-btn">📷 选择试卷图片</button>
+                  <span id="paper-img-name"></span>
+                </div>
+                <div id="paper-img-preview" class="img-preview hidden"></div>
+              </div>
+              <div class="field" id="paper-answer-field" style="display:none">
+                <label>答题卡图片</label>
+                <div class="img-row">
+                  <input type="file" id="paper-answer-img" accept="image/*" hidden />
+                  <button class="btn-outline" id="paper-answer-btn">📷 选择答题卡图片</button>
+                  <span id="paper-answer-name"></span>
+                </div>
+                <div id="paper-answer-preview" class="img-preview hidden"></div>
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button class="btn-outline" id="paper-modal-cancel">取消</button>
+              <button class="btn-primary" id="paper-modal-save"><svg class="ic"><use href="#i-download"/></svg> 保存试卷</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 试卷详情弹窗（查看图片 + AI 分析） -->
+        <div id="paper-detail-modal" class="modal-overlay hidden">
+          <div class="modal modal-wide">
+            <div class="modal-head"><span id="paper-detail-title">试卷详情</span><button class="modal-close" id="paper-detail-close">✕</button></div>
+            <div class="wizard-body">
+              <div class="paper-detail-imgs">
+                <div class="paper-detail-img">
+                  <div class="card-head sub"><span>试卷本体</span></div>
+                  <img id="paper-detail-paper" class="paper-detail-img-el" alt="试卷" />
+                </div>
+                <div class="paper-detail-img" id="paper-detail-answer-wrap" style="display:none">
+                  <div class="card-head sub"><span>答题卡</span></div>
+                  <img id="paper-detail-answer" class="paper-detail-img-el" alt="答题卡" />
+                </div>
+              </div>
+              <div class="field">
+                <label>AI 试卷分析</label>
+                <div class="hint" style="margin-bottom:8px">该功能需要读取试卷图片，仅供支持图像识别的 AI 使用（如 GPT-4o、Gemini、通义千问 VL 等）。</div>
+                <button class="btn-primary" id="paper-analyze"><svg class="ic"><use href="#i-zap"/></svg> 开始 AI 分析</button>
+                <button class="btn-outline" id="paper-analysis-refresh"><svg class="ic"><use href="#i-refresh"/></svg> 重新读取</button>
+              </div>
+              <div id="paper-analysis" class="md-body paper-analysis"></div>
+              <div class="field">
+                <label>关联错题</label>
+                <div id="paper-linked-errors" class="paper-linked-errors">
+                  <div class="hint">暂无关联错题。</div>
+                </div>
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button class="btn-outline warn" id="paper-detail-delete"><svg class="ic"><use href="#i-trash"/></svg> 删除试卷</button>
+              <button class="btn-outline" id="paper-detail-close2">关闭</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 错题管理 ===== -->
       <section class="view" id="view-stats">
         <div class="view-head">
-          <h1>错题统计</h1>
+          <h1>错题管理</h1>
           <p>各科错题 / 作文一览（点击条目可打开对应档案编辑）</p>
         </div>
         <div class="stats-toolbar">
-          <button class="btn-outline" id="stats-refresh">🔄 刷新统计</button>
+          <button class="btn-outline" id="stats-refresh"><svg class="ic"><use href="#i-refresh"/></svg> 刷新统计</button>
           <span class="hint" id="stats-summary"></span>
-          <input id="stats-search" class="git-msg" placeholder="🔍 搜索错题内容（含题目 / 错因 / 解法）…" style="flex:1;min-width:200px;max-width:420px;" />
+          <input id="stats-search" class="git-msg" placeholder="搜索错题内容（含题目 / 错因 / 解法）…" style="flex:1;min-width:200px;max-width:420px;" />
           <span class="tb-spacer"></span>
           <span class="hint" id="exam-sel-count">已选 0 题</span>
-          <button class="btn-primary" id="exam-gen">📋 生成试卷(Word)</button>
+          <button class="btn-outline" id="stats-fam"><svg class="ic"><use href="#i-target"/></svg> 批量设熟悉度</button>
+          <button class="btn-outline" id="stats-group"><svg class="ic"><use href="#i-folder"/></svg> 错题组管理</button>
+          <button class="btn-primary" id="exam-gen"><svg class="ic"><use href="#i-file-text"/></svg> 生成试卷(Word)</button>
           <button class="btn-outline" id="exam-clear">清空选择</button>
+        </div>
+        <div id="stats-fam-bar" class="stats-fam-bar hidden">
+          <span class="hint">已选 <b id="stats-fam-count">0</b> 题，设为：</span>
+          <select id="stats-fam-select">
+            <option value="unfamiliar">生疏</option>
+            <option value="vague">模糊</option>
+            <option value="medium">中等</option>
+            <option value="familiar">熟悉</option>
+            <option value="mastered">掌握</option>
+          </select>
+          <button class="btn-primary" id="stats-fam-apply">应用</button>
+          <button class="btn-outline" id="stats-fam-cancel">取消</button>
+        </div>
+        <div id="stats-group-bar" class="stats-fam-bar hidden">
+          <span class="hint">错题组：</span>
+          <select id="stats-group-select"></select>
+          <button class="btn-primary" id="stats-group-move">移动选中到该组</button>
+          <button class="btn-outline" id="stats-group-new"><svg class="ic"><use href="#i-plus"/></svg> 新建组</button>
+          <button class="btn-outline" id="stats-group-del"><svg class="ic"><use href="#i-trash"/></svg> 删除组</button>
+          <button class="btn-outline" id="stats-group-cancel">关闭</button>
         </div>
         <div id="stats-search-results" class="search-results hidden"></div>
         <div id="stats-list" class="stats-list"></div>
@@ -321,8 +939,8 @@
             <div class="editor-head">
               <span id="editor-file" class="editor-file">未选择文件</span>
               <div>
-                <button class="btn-mini" id="editor-mode">👁 预览</button>
-                <button class="btn-mini primary" id="editor-save">保存（UTF-8+BOM）</button>
+                <button class="btn-mini" id="editor-mode"><svg class="ic"><use href="#i-search"/></svg> 预览</button>
+                <button class="btn-mini primary" id="editor-save"><svg class="ic"><use href="#i-download"/></svg> 保存（UTF-8+BOM）</button>
               </div>
             </div>
             <textarea id="editor" class="editor" spellcheck="false" placeholder="选择左侧文件开始编辑…"></textarea>
@@ -344,7 +962,7 @@
             <input id="git-msg" class="git-msg" placeholder="提交信息（默认：修改内容 - 日期）" />
             <button class="btn-primary" id="git-commit-btn">Commit</button>
             <button class="btn-primary" id="git-push-btn">Push</button>
-            <button class="btn-outline" id="git-scan-btn">🧹 AIGC 串扫描</button>
+            <button class="btn-outline" id="git-scan-btn"><svg class="ic"><use href="#i-search"/></svg> AIGC 串扫描</button>
           </div>
           <div id="git-branch" class="git-branch"></div>
           <pre id="git-status" class="git-output"></pre>
@@ -361,7 +979,7 @@
           <p>本地服务器实时渲染 docsify 知识库</p>
         </div>
         <div class="preview-toolbar">
-          <button class="btn-mini" id="preview-refresh">🔄 刷新预览</button>
+          <button class="btn-mini" id="preview-refresh"><svg class="ic"><use href="#i-refresh"/></svg> 刷新预览</button>
           <span class="hint" id="preview-hint"></span>
         </div>
         <webview id="preview" class="preview-web"></webview>
@@ -374,7 +992,7 @@
           <p>多用户支持：每个用户使用独立的知识库文件夹；当前登录用户特殊显示，切换用户时弹窗确认并自动刷新。</p>
         </div>
         <div class="card">
-          <div class="card-head"><span>👤 当前用户：<b id="user-current-name">—</b></span></div>
+          <div class="card-head"><span><svg class="ic"><use href="#i-users"/></svg> 当前用户：<b id="user-current-name">—</b></span></div>
           <div class="field">
             <label>昵称（首页问候显示：欢迎回来，XXX）</label>
             <input id="user-nickname" class="git-msg" placeholder="你的昵称" />
@@ -387,18 +1005,18 @@
             </div>
           </div>
           <div class="field actions">
-            <button class="btn-primary" id="user-save">💾 保存当前用户配置</button>
-            <button class="btn-outline" id="user-reload">↺ 重新读取</button>
+            <button class="btn-primary" id="user-save"><svg class="ic"><use href="#i-download"/></svg> 保存当前用户配置</button>
+            <button class="btn-outline" id="user-reload"><svg class="ic"><use href="#i-refresh"/></svg> 重新读取</button>
           </div>
           <div id="user-proc" class="proc-log"></div>
         </div>
         <div class="card">
-          <div class="card-head"><span>👥 所有用户</span><button class="btn-mini" id="users-refresh">🔄 刷新列表</button></div>
+          <div class="card-head"><span><svg class="ic"><use href="#i-users"/></svg> 所有用户</span><button class="btn-mini" id="users-refresh"><svg class="ic"><use href="#i-refresh"/></svg> 刷新列表</button></div>
           <div class="ws-row"><span class="hint">当前登录：<b id="user-current">—</b></span></div>
           <p class="hint">当前登录的用户会高亮标记「当前」。</p>
           <div id="users-list" class="users-list"></div>
           <div class="ws-row">
-            <button class="btn-primary" id="users-add">＋ 新增用户（创建引导）</button>
+            <button class="btn-primary" id="users-add"><svg class="ic"><use href="#i-plus"/></svg> 新增用户（创建引导）</button>
             <span class="hint">新增用户会在所选位置新建独立知识库文件夹，并重新走一遍初始化向导。</span>
           </div>
         </div>
@@ -408,144 +1026,290 @@
       <section class="view" id="view-settings">
         <div class="view-head">
           <h1>设置</h1>
-          <p>AI 提供商 · 系统提示词 · 工作目录 · 外观</p>
+          <p>外观 · 图片 OCR · Token · 目标考试 · 数据 · Git · AI 提供商 · 系统提示词 · 关于</p>
         </div>
-        <div class="settings-layout">
-          <div class="card">
-            <div class="sec-title">🎨 外观</div>
-            <div class="ws-row">
-              <select id="set-theme">
-                <option value="dark">深色（默认）</option>
-                <option value="light">浅色</option>
-              </select>
+        <div class="settings-wrap">
+          <div class="settings-nav">
+            <button class="settings-nav-item active" data-pane="appearance">外观</button>
+            <button class="settings-nav-item" data-pane="ocr">图片 OCR</button>
+            <button class="settings-nav-item" data-pane="token">Token 预警</button>
+            <button class="settings-nav-item" data-pane="exam">目标考试</button>
+            <button class="settings-nav-item" data-pane="data">数据</button>
+            <button class="settings-nav-item" data-pane="sync">云端同步</button>
+            <button class="settings-nav-item" data-pane="git">Git</button>
+            <button class="settings-nav-item" data-pane="ai">AI 提供商</button>
+            <button class="settings-nav-item" data-pane="prompts">系统提示词</button>
+            <button class="settings-nav-item" data-pane="about">关于</button>
+          </div>
+          <div class="settings-panes">
+            <!-- 外观 -->
+            <div class="settings-pane active" data-pane="appearance">
+              <div class="sec-title">外观</div>
+              <div class="ws-row">
+                <label style="font-size:13px;color:var(--text-2)">主题</label>
+                <select id="set-theme">
+                  <option value="dark">深色（默认）</option>
+                  <option value="light">浅色</option>
+                </select>
+              </div>
+              <div class="ws-row">
+                <label style="font-size:13px;color:var(--text-2)">中文界面字体</label>
+                <select id="set-font-cn">
+                  <option value="">默认（HarmonyOS Sans / 微软雅黑）</option>
+                </select>
+                <button class="btn-mini" id="font-refresh" title="重新扫描本地字体"><svg class="ic"><use href="#i-refresh"/></svg> 刷新</button>
+              </div>
+              <div class="ws-row">
+                <label style="font-size:13px;color:var(--text-2)">西文界面字体</label>
+                <select id="set-font-en">
+                  <option value="">默认（跟随中文）</option>
+                </select>
+              </div>
+              <p class="hint">中文与西文（英文/数字）可分别指定字体；选择后立即生效并保存。</p>
+              <div class="ws-row">
+                <label style="font-size:13px;color:var(--text-2)">待办展示方式</label>
+                <select id="set-todo-view">
+                  <option value="list">列表</option>
+                  <option value="calendar">日历</option>
+                </select>
+              </div>
+              <p class="hint">「任务待办」页的展示方式：列表按优先级/日期排列，日历按日期分格展示。</p>
             </div>
 
-            <div class="sec-title">📝 图片 OCR 识别（可选）</div>
-            <div class="ws-row">
-              <label class="chip" title="在「错题录入 / 作文 / AI 助手」上传图片后，自动用所选 OCR 识别文字"><input type="checkbox" id="set-ocr-auto" /> 上传图片后自动 OCR 识别文字</label>
-            </div>
-            <div class="ws-row">
-              <label style="font-size:13px;color:var(--text-2)">识别引擎</label>
-              <select id="set-ocr-engine">
-                <option value="win">Windows 自带 OCR（推荐 · 中文印刷体最佳）</option>
-                <option value="tesseract">Tesseract.js（全精度模型）</option>
-              </select>
-            </div>
-            <p class="hint">两种引擎二选一。识别前会自动做灰度与对比度预处理以提升精度；Windows 自带 OCR 离线、零依赖，对中文印刷体效果最好；若你的系统缺少中文 OCR 语言包会自动回退 Tesseract。首次用 Tesseract 需下载语言包（约 30MB）。识别结果会填入对应文本框（题目 / 作文正文 / 聊天输入框），可先编辑再发送。</p>
-
-            <div class="sec-title">⏱ Token 消耗预警</div>
-            <div class="ws-row">
-              <label style="font-size:13px;color:var(--text-2)">今日消耗</label>
-              <span class="hint" id="token-today">0</span>
-            </div>
-            <div class="ws-row">
-              <label style="font-size:13px;color:var(--text-2)">预警阈值</label>
-              <input id="set-token-warn" type="number" min="1000" step="1000" class="git-msg" placeholder="例：500000" />
-            </div>
-            <p class="hint">单日 Token 消耗达到阈值时弹窗提示，避免用量 / 费用失控。</p>
-
-            <div class="sec-title">🎯 目标考试（首页倒计时）</div>
-            <div class="exam-row">
-              <label>类型</label>
-              <select id="set-exam-type">
-                <option value="gaokao">高考</option>
-                <option value="zhongkao">中考</option>
-                <option value="custom">自定义</option>
-              </select>
-              <label>年份</label>
-              <input id="set-exam-year" type="number" min="2024" max="2099" class="git-msg" />
-              <label>月</label>
-              <select id="set-exam-month"></select>
-              <label>日</label>
-              <select id="set-exam-day"></select>
-            </div>
-            <div class="field" id="set-exam-name-field" style="display:none">
-              <label>考试名称（自定义，例：期末考试 / 一模）</label>
-              <input id="set-exam-name" class="git-msg" placeholder="输入自定义考试名称" />
-            </div>
-            <p class="hint">考试日期各地不同，可自行设定（中考尤甚）；选择「自定义」可手动输入考试名称。</p>
-
-            <div class="sec-title">🔑 组卷密码（网页端生成试卷用）</div>
-            <div class="ws-row">
-              <input id="set-exampwd" type="text" class="git-msg" placeholder="留空=恢复默认密码" />
-              <button class="btn-mini" id="exampwd-apply" title="将密码写入网页 index.html">写入网页</button>
-            </div>
-            <p class="hint">默认密码为 <b>000000</b>。留空并点「写入网页」即恢复为默认密码；网页端生成试卷时需输入此密码。</p>
-
-            <div class="sec-title">💾 数据导出 / 导入</div>
-            <div class="ws-row">
-              <button class="btn-outline" id="data-export">⬆️ 导出全部数据</button>
-              <button class="btn-outline" id="data-import">⬇️ 导入数据</button>
-            </div>
-            <p class="hint">导出为单个 .json 文件（含知识库全部文件、设置与专注记录；出于隐私不含 API Key）。也可导入他人分享的数据。</p>
-
-            <div class="sec-title">📜 开源致谢</div>
-            <div class="ws-row">
-              <button class="btn-outline" id="credits-open">📜 致谢 · 开源软件</button>
-              <span class="hint">本项目使用的开源软件（名称 + GitHub 地址）</span>
+            <!-- 图片 OCR -->
+            <div class="settings-pane" data-pane="ocr">
+              <div class="sec-title">图片 OCR 识别（可选）</div>
+              <div class="ws-row">
+                <label class="chip" title="在「错题录入 / 作文 / AI 助手」上传图片后，自动用所选 OCR 识别文字"><input type="checkbox" id="set-ocr-auto" /> 上传图片后自动 OCR 识别文字</label>
+              </div>
+              <div class="ws-row">
+                <label style="font-size:13px;color:var(--text-2)">识别引擎</label>
+                <select id="set-ocr-engine">
+                  <option value="win">Windows 自带 OCR（推荐 · 中文印刷体最佳）</option>
+                  <option value="tesseract">Tesseract.js（全精度模型）</option>
+                </select>
+              </div>
+              <p class="hint">两种引擎二选一。识别前会自动做灰度与对比度预处理以提升精度；Windows 自带 OCR 离线、零依赖，对中文印刷体效果最好；若你的系统缺少中文 OCR 语言包会自动回退 Tesseract。首次用 Tesseract 需下载语言包（约 30MB）。识别结果会填入对应文本框（题目 / 作文正文 / 聊天输入框），可先编辑再发送。</p>
             </div>
 
-            <div class="sec-title">🔐 Git 授权配置</div>
-            <div class="field"><label>Git 用户名</label><input id="git-name" placeholder="git config user.name" /></div>
-            <div class="field"><label>Git 邮箱</label><input id="git-email" placeholder="git config user.email" /></div>
-            <div class="ws-row"><button class="btn-outline" id="git-save">保存到 Git 配置</button><span class="hint" id="git-cfg-status"></span></div>
-            <div class="field"><label>远程仓库 URL</label><input id="git-remote" placeholder="https://github.com/用户名/仓库.git" /></div>
-            <div class="ws-row">
-              <button class="btn-outline" id="git-init-repo">🗂 初始化 Git 仓库</button>
-              <button class="btn-outline" id="git-remote-set">设置远程仓库</button>
-              <button class="btn-outline" id="git-auth-test">🔍 测试连接/授权</button>
-              <button class="btn-outline warn" id="git-creds-clear">清除 GitHub 凭据</button>
+            <!-- Token 预警 -->
+            <div class="settings-pane" data-pane="token">
+              <div class="sec-title">Token 消耗预警</div>
+              <div class="ws-row">
+                <label style="font-size:13px;color:var(--text-2)">今日消耗</label>
+                <span class="hint" id="token-today">0</span>
+              </div>
+              <div class="ws-row">
+                <label style="font-size:13px;color:var(--text-2)">预警阈值</label>
+                <input id="set-token-warn" type="number" min="1000" step="1000" class="git-msg" placeholder="例：500000" />
+              </div>
+              <p class="hint">单日 Token 消耗达到阈值时弹窗提示，避免用量 / 费用失控。</p>
             </div>
-            <p class="hint" id="git-auth-status">HTTPS 推送凭据由系统凭据管理器保存；「测试连接」会触发 GitHub 授权。</p>
 
-            <div class="sec-title">👤 关于作者</div>
-            <div class="about-body">
-              <img class="about-logo" src="logo.svg" alt="Kfdzcoffee" />
-              <div class="about-info">
-                <div class="about-name">Kfdzcoffee</div>
-                <div class="about-links">
-                  <div class="about-link"><span class="al-label">项目官网</span><a href="#" data-url="https://studyassistant.kfdzcoffee.cn/">studyassistant.kfdzcoffee.cn</a></div>
-                  <div class="about-link"><span class="al-label">项目地址</span><a href="#" data-url="https://github.com/kfdzcoffee/StudyAssistant">github.com/kfdzcoffee/StudyAssistant</a></div>
-                  <div class="about-link"><span class="al-label">个人网站</span><a href="#" data-url="https://kfdzcoffee.cn/">kfdzcoffee.cn</a></div>
-                  <div class="about-link"><span class="al-label">个人博客</span><a href="#" data-url="https://blog.kfdzcoffee.cn/">blog.kfdzcoffee.cn</a></div>
-                  <div class="about-link"><span class="al-label">GitHub</span><a href="#" data-url="https://github.com/kfdzcoffee">github.com/kfdzcoffee</a></div>
-                  <div class="about-link"><span class="al-label">邮箱</span><a href="#" data-url="mailto:me@kfdzcoffee.cn">me@kfdzcoffee.cn</a></div>
+            <!-- 目标考试 -->
+            <div class="settings-pane" data-pane="exam">
+              <div class="sec-title">目标考试（首页倒计时）</div>
+              <div class="exam-row">
+                <label>类型</label>
+                <select id="set-exam-type">
+                  <option value="gaokao">高考</option>
+                  <option value="zhongkao">中考</option>
+                  <option value="custom">自定义</option>
+                </select>
+                <label>年份</label>
+                <input id="set-exam-year" type="number" min="2024" max="2099" class="git-msg" />
+                <label>月</label>
+                <select id="set-exam-month"></select>
+                <label>日</label>
+                <select id="set-exam-day"></select>
+              </div>
+              <div class="field" id="set-exam-name-field" style="display:none">
+                <label>考试名称（自定义，例：期末考试 / 一模）</label>
+                <input id="set-exam-name" class="git-msg" placeholder="输入自定义考试名称" />
+              </div>
+              <p class="hint">考试日期各地不同，可自行设定（中考尤甚）；选择「自定义」可手动输入考试名称。</p>
+            </div>
+
+            <!-- 数据 -->
+            <div class="settings-pane" data-pane="data">
+              <div class="sec-title">组卷密码（网页端生成试卷用）</div>
+              <div class="ws-row">
+                <input id="set-exampwd" type="text" class="git-msg" placeholder="留空=恢复默认密码" />
+                <button class="btn-mini" id="exampwd-apply" title="将密码写入网页 index.html">写入网页</button>
+              </div>
+              <p class="hint">默认密码为 <b>000000</b>。留空并点「写入网页」即恢复为默认密码；网页端生成试卷时需输入此密码。</p>
+
+              <div class="sec-title">数据导出 / 导入</div>
+              <div class="ws-row">
+                <button class="btn-outline" id="data-export"><svg class="ic"><use href="#i-upload"/></svg> 导出全部数据</button>
+                <button class="btn-outline" id="data-import"><svg class="ic"><use href="#i-download"/></svg> 导入数据</button>
+              </div>
+              <p class="hint">导出为单个 .json 文件（含知识库全部文件、设置与专注记录；出于隐私不含 API Key）。也可导入他人分享的数据。</p>
+            </div>
+
+            <!-- 云端同步 -->
+            <div class="settings-pane" data-pane="sync">
+              <div class="sec-title">云端同步（自有服务器）</div>
+              <div class="ws-row">
+                <label style="font-size:13px;color:var(--text-2)">启用同步</label>
+                <label class="switch"><input type="checkbox" id="sync-enabled"><span class="slider"></span></label>
+              </div>
+              <div class="field">
+                <label>服务器地址</label>
+                <input id="sync-server" class="git-msg" placeholder="https://your-server.com 或 http://127.0.0.1:3000" />
+              </div>
+              <div class="field">
+                <label>账号</label>
+                <input id="sync-username" class="git-msg" placeholder="注册的云端账号" />
+              </div>
+              <div class="field">
+                <label>密码</label>
+                <input id="sync-password" type="password" class="git-msg" placeholder="登录密码（仅用于登录，不保存）" />
+              </div>
+              <div class="ws-row">
+                <button class="btn-outline" id="sync-test"><svg class="ic"><use href="#i-globe"/></svg> 测试连接</button>
+                <button class="btn-outline" id="sync-login"><svg class="ic"><use href="#i-check"/></svg> 登录</button>
+                <button class="btn-outline" id="sync-now"><svg class="ic"><use href="#i-refresh"/></svg> 立即同步</button>
+              </div>
+              <div class="ws-row">
+                <button class="btn-outline" id="sync-diff"><svg class="ic"><use href="#i-search"/></svg> 检测差异</button>
+                <button class="btn-outline" id="sync-download"><svg class="ic"><use href="#i-download"/></svg> 从云端下载</button>
+              </div>
+              <div class="ws-row">
+                <label style="font-size:13px;color:var(--text-2)">自动同步</label>
+                <label class="switch"><input type="checkbox" id="sync-auto"><span class="slider"></span></label>
+              </div>
+              <p class="hint" id="sync-status">未登录。配置服务器地址与账号后点击「登录」。</p>
+              <div id="sync-result" style="display:none;margin-top:8px;font-size:12px;line-height:1.7;background:var(--bg-2,#f5f5f5);border-radius:8px;padding:10px 12px;"></div>
+              <p class="hint">同步范围：生词本、文言文、待办、专注记录、错题库。电脑端本地文件为权威，云端为备份与中转；手机端只访问云端。</p>
+            </div>
+
+            <!-- Git -->
+            <div class="settings-pane" data-pane="git">
+              <div class="sec-title">Git 授权配置</div>
+              <div class="field"><label>Git 用户名</label><input id="git-name" placeholder="git config user.name" /></div>
+              <div class="field"><label>Git 邮箱</label><input id="git-email" placeholder="git config user.email" /></div>
+              <div class="ws-row"><button class="btn-outline" id="git-save">保存到 Git 配置</button><span class="hint" id="git-cfg-status"></span></div>
+              <div class="field"><label>远程仓库 URL</label><input id="git-remote" placeholder="https://github.com/用户名/仓库.git" /></div>
+              <div class="ws-row">
+                <button class="btn-outline" id="git-init-repo"><svg class="ic"><use href="#i-folder"/></svg> 初始化 Git 仓库</button>
+                <button class="btn-outline" id="git-remote-set">设置远程仓库</button>
+                <button class="btn-outline" id="git-auth-test"><svg class="ic"><use href="#i-search"/></svg> 测试连接/授权</button>
+                <button class="btn-outline warn" id="git-creds-clear">清除 GitHub 凭据</button>
+              </div>
+              <p class="hint" id="git-auth-status">HTTPS 推送凭据由系统凭据管理器保存；「测试连接」会触发 GitHub 授权。</p>
+            </div>
+
+            <!-- AI 提供商 -->
+            <div class="settings-pane" data-pane="ai">
+              <div class="sec-title">模型运行方式</div>
+              <div class="ws-row">
+                <label class="chip"><input type="radio" name="runtime-mode" id="runtime-mode-api" value="api" checked /> 调用云端 API</label>
+                <label class="chip"><input type="radio" name="runtime-mode" id="runtime-mode-local" value="local" /> 本机运行模型（内置引擎）</label>
+              </div>
+              <p class="hint">本机 / API 二选一：本机模式优先使用本机模型（可视觉识别），不走云端。</p>
+
+              <div id="local-model-box" class="wiz-provider" style="margin:10px 0 14px">
+                <div class="wp-head">
+                  <input type="checkbox" id="local-enabled" checked />
+                  <span>启用本机模型</span>
+                  <span class="hint">本机直接运行</span>
                 </div>
+                <div class="wp-grid">
+                  <div class="full">
+                    <label style="font-size:13px;color:var(--text-2)">模型安装目录（可选）</label>
+                    <div class="ws-row">
+                      <input id="local-model-dir" placeholder="留空=默认目录" />
+                      <button class="btn-mini" id="local-model-dir-btn">选择…</button>
+                    </div>
+                  </div>
+                  <div class="full">
+                    <label style="font-size:13px;color:var(--text-2)">模型列表（含许可）</label>
+                    <select id="local-model-id"></select>
+                    <p id="local-model-license" class="hint"></p>
+                  </div>
+                  <div>
+                    <label style="font-size:13px;color:var(--text-2)">闲时策略</label>
+                    <select id="local-idle-policy">
+                      <option value="idle_5m">闲时自动关闭</option>
+                      <option value="always_on">始终开启</option>
+                      <option value="manual">手动启停</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style="font-size:13px;color:var(--text-2)">闲时关闭时间（分钟）</label>
+                    <input id="local-idle-minutes" type="number" min="1" max="180" value="5" />
+                  </div>
+                </div>
+                <div class="ws-row" style="margin-top:10px">
+                  <button class="btn-primary" id="local-wizard-open"><svg class="ic"><use href="#i-settings"/></svg> 安装向导</button>
+                  <button class="btn-outline" id="local-start">启动服务</button>
+                  <button class="btn-outline" id="local-stop">停止服务</button>
+                  <button class="btn-mini" id="local-refresh">刷新状态</button>
+                </div>
+                <p class="hint" id="local-state">本机模型状态未检测。</p>
+              </div>
+
+              <div class="sec-title">AI 提供商</div>
+              <p class="hint">API Key 使用系统密钥环加密存储；模型可从下拉选择预设。</p>
+              <div id="providers"></div>
+            </div>
+
+            <!-- 系统提示词 -->
+            <div class="settings-pane" data-pane="prompts">
+              <div class="sec-title">系统提示词</div>
+              <div class="field">
+                <label>错题归纳帮手</label>
+                <textarea id="prompt-error" rows="3"></textarea>
+              </div>
+              <div class="field">
+                <label>学习归纳帮手</label>
+                <textarea id="prompt-study" rows="3"></textarea>
               </div>
             </div>
 
-            <div class="sec-title">📦 版本信息</div>
-            <div class="ws-row">
-              <button class="btn-outline" id="version-open">📦 版本更新内容（当前 v1.9.1）</button>
-              <button class="btn-primary" id="update-check">🔄 检查新版本</button>
-              <button class="btn-outline hidden" id="dl-open">📥 下载进度</button>
-            </div>
-            <p class="hint" id="update-status">自动从 GitHub Releases 检查并获取新版安装包。</p>
-          </div>
+            <!-- 关于 -->
+            <div class="settings-pane" data-pane="about">
+              <div class="sec-title">关于作者</div>
+              <div class="about-body">
+                <img class="about-logo" src="logo.svg" alt="Kfdzcoffee" />
+                <div class="about-info">
+                  <div class="about-name">Kfdzcoffee</div>
+                  <div class="about-links">
+                    <div class="about-link"><span class="al-label">项目官网</span><a href="#" data-url="https://studyassistant.kfdzcoffee.cn/">studyassistant.kfdzcoffee.cn</a></div>
+                    <div class="about-link"><span class="al-label">项目地址</span><a href="#" data-url="https://github.com/kfdzcoffee/StudyAssistant">github.com/kfdzcoffee/StudyAssistant</a></div>
+                    <div class="about-link"><span class="al-label">个人网站</span><a href="#" data-url="https://kfdzcoffee.cn/">kfdzcoffee.cn</a></div>
+                    <div class="about-link"><span class="al-label">个人博客</span><a href="#" data-url="https://blog.kfdzcoffee.cn/">blog.kfdzcoffee.cn</a></div>
+                    <div class="about-link"><span class="al-label">GitHub</span><a href="#" data-url="https://github.com/kfdzcoffee">github.com/kfdzcoffee</a></div>
+                    <div class="about-link"><span class="al-label">邮箱</span><a href="#" data-url="mailto:me@kfdzcoffee.cn">me@kfdzcoffee.cn</a></div>
+                  </div>
+                </div>
+              </div>
 
-          <div class="card">
-            <div class="sec-title">🤖 AI 提供商</div>
-            <p class="hint">API Key 使用系统密钥环加密存储；模型可从下拉选择预设。</p>
-            <div id="providers"></div>
+              <div class="sec-title">开源致谢</div>
+              <div class="ws-row">
+                <button class="btn-outline" id="credits-open"><svg class="ic"><use href="#i-file-text"/></svg> 致谢 · 开源软件</button>
+                <span class="hint">本项目使用的开源软件（名称 + GitHub 地址）</span>
+              </div>
 
-            <div class="sec-title">📜 系统提示词</div>
-            <div class="field">
-              <label>错题归纳帮手</label>
-              <textarea id="prompt-error" rows="3"></textarea>
-            </div>
-            <div class="field">
-              <label>学习归纳帮手</label>
-              <textarea id="prompt-study" rows="3"></textarea>
-            </div>
+              <div class="sec-title">版本信息</div>
+              <div class="ws-row">
+                <button class="btn-outline" id="version-open"><svg class="ic"><use href="#i-file-text"/></svg> 版本更新内容（当前 v1.10.0）</button>
+                <button class="btn-primary" id="update-check"><svg class="ic"><use href="#i-refresh"/></svg> 检查新版本</button>
+                <button class="btn-outline hidden" id="dl-open"><svg class="ic"><use href="#i-download"/></svg> 下载进度</button>
+                <button class="btn-outline" id="cache-clean"><svg class="ic"><use href="#i-trash"/></svg> 清理缓存</button>
+              </div>
+              <p class="hint" id="update-status">自动从 GitHub Releases 检查并获取新版安装包；「清理缓存」可删除旧版安装包与下载缓存。</p>
 
-            <div class="sec-title">🛠 操作</div>
-            <div class="field actions">
-              <button class="btn-primary" id="settings-save">保存设置</button>
-              <button class="btn-outline" id="settings-wizard">初始化向导</button>
-            </div>
-            <div class="field actions">
-              <button class="btn-outline" id="btn-build">🏗️ 构建 / 重建知识库</button>
-              <button class="btn-outline" id="btn-refresh">🔄 刷新页面（应用配置）</button>
+              <div class="sec-title">操作</div>
+              <div class="field actions">
+                <button class="btn-primary" id="settings-save">保存设置</button>
+                <button class="btn-outline" id="settings-wizard">初始化向导</button>
+              </div>
+              <div class="field actions">
+                <button class="btn-outline" id="btn-build"><svg class="ic"><use href="#i-build"/></svg> 构建 / 重建知识库</button>
+                <button class="btn-outline" id="btn-refresh"><svg class="ic"><use href="#i-refresh"/></svg> 刷新页面（应用配置）</button>
+              </div>
             </div>
           </div>
         </div>
@@ -558,11 +1322,89 @@
     </main>
   </div>
 
-  <!-- ===== 生成试卷（组卷选项） ===== -->
+  <!-- ===== 新建试卷（4 种组卷方式） ===== -->
   <div id="exam-modal" class="modal-overlay hidden">
-    <div class="modal">
-      <div class="modal-head"><span>📋 生成试卷</span><button class="modal-close" id="exam-modal-close">✕</button></div>
+    <div class="modal modal-lg">
+      <div class="modal-head"><span><svg class="ic"><use href="#i-file-text"/></svg> 新建试卷</span><button class="modal-close" id="exam-modal-close">✕</button></div>
       <div class="wizard-body">
+        <!-- 方式切换 -->
+        <div class="exam-method-tabs">
+          <button type="button" class="exam-method-tab active" data-method="paper">① 按试卷</button>
+          <button type="button" class="exam-method-tab" data-method="group">② 按错题组</button>
+          <button type="button" class="exam-method-tab" data-method="manual">③ 手动勾选</button>
+          <button type="button" class="exam-method-tab" data-method="random">④ 按科目随机</button>
+        </div>
+
+        <!-- 方式①：按试卷主题（选择已有试卷，取其关联错题） -->
+        <div class="exam-method-pane" data-method="paper">
+          <div class="field">
+            <label>选择已有试卷</label>
+            <select id="exam-paper-select"></select>
+            <p class="hint">将自动载入该试卷关联的错题（在「错题录入」时关联的试卷）。</p>
+          </div>
+          <button class="btn-outline" id="exam-paper-load"><svg class="ic"><use href="#i-download"/></svg> 载入该试卷关联错题</button>
+        </div>
+
+        <!-- 方式②：按错题组 + 熟悉度 -->
+        <div class="exam-method-pane hidden" data-method="group">
+          <div class="field">
+            <label>错题组</label>
+            <select id="exam-group-select"></select>
+          </div>
+          <div class="field">
+            <label>熟悉程度（可多选）</label>
+            <div class="exam-fam-chips">
+              <label class="chip"><input type="checkbox" class="exam-fam-cb" value="unfamiliar" /> 生疏</label>
+              <label class="chip"><input type="checkbox" class="exam-fam-cb" value="vague" /> 模糊</label>
+              <label class="chip"><input type="checkbox" class="exam-fam-cb" value="medium" checked /> 中等</label>
+              <label class="chip"><input type="checkbox" class="exam-fam-cb" value="familiar" /> 熟悉</label>
+              <label class="chip"><input type="checkbox" class="exam-fam-cb" value="mastered" /> 掌握</label>
+            </div>
+          </div>
+          <button class="btn-outline" id="exam-group-load"><svg class="ic"><use href="#i-download"/></svg> 载入符合条件的错题</button>
+        </div>
+
+        <!-- 方式③：手动勾选（从错题库全列表勾选） -->
+        <div class="exam-method-pane hidden" data-method="manual">
+          <div class="field">
+            <label>从错题库勾选（点击条目加入/移出）</label>
+            <div id="exam-manual-list" class="exam-manual-list">
+              <div class="hint">加载中…</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 方式④：按科目随机 / 熟悉度 -->
+        <div class="exam-method-pane hidden" data-method="random">
+          <div class="field">
+            <label>科目</label>
+            <select id="exam-random-subject"></select>
+          </div>
+          <div class="field">
+            <label>熟悉程度（可多选）</label>
+            <div class="exam-fam-chips">
+              <label class="chip"><input type="checkbox" class="exam-fam-cb" value="unfamiliar" /> 生疏</label>
+              <label class="chip"><input type="checkbox" class="exam-fam-cb" value="vague" /> 模糊</label>
+              <label class="chip"><input type="checkbox" class="exam-fam-cb" value="medium" checked /> 中等</label>
+              <label class="chip"><input type="checkbox" class="exam-fam-cb" value="familiar" /> 熟悉</label>
+              <label class="chip"><input type="checkbox" class="exam-fam-cb" value="mastered" /> 掌握</label>
+            </div>
+          </div>
+          <div class="field">
+            <label>抽取题数</label>
+            <input id="exam-random-count" type="number" min="1" value="10" />
+          </div>
+          <button class="btn-outline" id="exam-random-load"><svg class="ic"><use href="#i-zap"/></svg> 随机抽取</button>
+        </div>
+
+        <!-- 待选错题列表（各方式共用） -->
+        <div class="field">
+          <label>待选错题（<span id="exam-count">0</span> 题）</label>
+          <div id="exam-picked-list" class="exam-picked-list">
+            <div class="hint">请选择上方一种方式载入错题。</div>
+          </div>
+        </div>
+
         <div class="field">
           <label>试卷名称</label>
           <input id="exam-name" placeholder="例：数学错题组卷 2026.8.12" />
@@ -574,7 +1416,6 @@
           <label><input type="checkbox" id="exam-opt-similar" /> 带同类题巩固</label>
           <label class="exam-sep"><input type="checkbox" id="exam-opt-separate" checked /> 答案与解析另起一页放最后</label>
         </div>
-        <p class="hint" id="exam-hint">共 <span id="exam-count">0</span> 题待生成</p>
       </div>
       <div class="modal-actions">
         <button class="btn-outline" id="exam-modal-cancel">取消</button>
@@ -586,13 +1427,20 @@
   <!-- ===== 错题详情 ===== -->
   <div id="detail-modal" class="modal-overlay hidden">
     <div class="modal modal-lg">
-      <div class="modal-head"><span>📄 错题详情</span><button class="modal-close" id="detail-close">✕</button></div>
+      <div class="modal-head">
+        <button class="detail-nav" id="detail-prev" title="上一道">‹</button>
+        <span>错题详情</span>
+        <button class="modal-close" id="detail-close">✕</button>
+      </div>
       <div class="modal-tool" id="detail-file"></div>
       <div class="modal-diff-wrap"><div class="md-body" id="detail-body"></div></div>
+      <div id="detail-attachments" class="detail-attachments"></div>
       <div class="modal-actions">
+        <button class="detail-nav" id="detail-prev2" title="上一道">‹ 上一道</button>
         <label class="chip" style="cursor:pointer"><input type="checkbox" id="detail-sel" /> 加入组卷</label>
-        <button class="btn-primary" id="detail-gen">📋 生成试卷</button>
-        <button class="btn-outline" id="detail-edit">✏️ 编辑该文件</button>
+        <button class="btn-primary" id="detail-gen"><svg class="ic"><use href="#i-file-text"/></svg> 生成试卷</button>
+        <button class="btn-outline" id="detail-edit"><svg class="ic"><use href="#i-edit"/></svg> 编辑该文件</button>
+        <button class="detail-nav" id="detail-next2" title="下一道">下一道 ›</button>
       </div>
     </div>
   </div>
@@ -600,12 +1448,17 @@
   <!-- ===== 构建 docsify 知识库 ===== -->
   <div id="build-modal" class="modal-overlay hidden">
     <div class="modal modal-lg">
-      <div class="modal-head"><span>🏗️ 构建 docsify 错题知识库</span><button class="modal-close" id="build-close">✕</button></div>
+      <div class="modal-head"><span><svg class="ic"><use href="#i-build"/></svg> 构建 docsify 错题知识库</span><button class="modal-close" id="build-close">✕</button></div>
       <div class="wizard-body">
         <p class="hint" id="build-hint"></p>
         <div class="field">
           <label>科目（用逗号/顿号分隔）</label>
           <input id="build-subjects" value="语文,数学,英语,地理,历史,政治" />
+        </div>
+        <div class="field">
+          <label>有作文的科目（可选，用逗号/顿号分隔）</label>
+          <input id="build-essay-subjects" value="语文" placeholder="如：语文" />
+          <p class="hint">这些科目的档案将包含「作文记录」部分，便于后续录入作文。</p>
         </div>
         <div class="field">
           <label>组卷密码（可选，写入网页端）</label>
@@ -617,7 +1470,7 @@
       </div>
       <div class="modal-actions">
         <button class="btn-outline" id="build-cancel">取消</button>
-        <button class="btn-primary" id="build-go">🚀 立即构建</button>
+        <button class="btn-primary" id="build-go"><svg class="ic"><use href="#i-zap"/></svg> 立即构建</button>
       </div>
     </div>
   </div>
@@ -625,7 +1478,7 @@
   <!-- ===== 手动录入错题 ===== -->
   <div id="manual-modal" class="modal-overlay hidden">
     <div class="modal modal-lg">
-      <div class="modal-head"><span>✍️ 手动录入错题</span><button class="modal-close" id="manual-close">✕</button></div>
+      <div class="modal-head"><span><svg class="ic"><use href="#i-edit"/></svg> 手动录入错题</span><button class="modal-close" id="manual-close">✕</button></div>
       <div class="wizard-body manual-form">
         <p class="hint">不经过 AI，直接按知识库格式写入错题档案（错题 / 错因 / 录入日期 / 正确答案 / 错因分析 / 典型例题）。支持 $...$ 数学公式。</p>
         <div class="manual-grid">
@@ -644,6 +1497,7 @@
           <div class="field" id="manual-newsubj-field" style="display:none">
             <label>新科目名称</label>
             <input id="manual-newsubj" placeholder="例：物理" />
+            <label class="chk-row" style="margin-top:6px"><input type="checkbox" id="manual-newsubj-essay" /> 该科目有作文（档案将包含作文记录）</label>
           </div>
           <div class="field">
             <label>错题标题</label>
@@ -676,7 +1530,7 @@
         </div>
         <div class="field">
           <label>关键技巧（可选）</label>
-          <textarea id="manual-tip" rows="2" placeholder="⚠️ 关键技巧：…"></textarea>
+          <textarea id="manual-tip" rows="2" placeholder="关键技巧：…"></textarea>
         </div>
         <div class="field">
           <label>典型例题 / 同类题变形（可选）</label>
@@ -684,14 +1538,14 @@
         </div>
         <div class="field">
           <label>写入预览</label>
-          <div id="manual-preview" class="md-body manual-preview"><span class="hint">填写后点「👁 预览」或直接「💾 写入错题库」。</span></div>
+          <div id="manual-preview" class="md-body manual-preview"><span class="hint">填写后点「预览」或直接「写入错题库」。</span></div>
         </div>
       </div>
       <div class="modal-actions">
         <span class="hint" id="manual-status"></span>
-        <button class="btn-outline" id="manual-preview-btn">👁 预览</button>
+        <button class="btn-outline" id="manual-preview-btn"><svg class="ic"><use href="#i-search"/></svg> 预览</button>
         <button class="btn-outline" id="manual-cancel">取消</button>
-        <button class="btn-primary" id="manual-save">💾 写入错题库</button>
+        <button class="btn-primary" id="manual-save"><svg class="ic"><use href="#i-download"/></svg> 写入错题库</button>
       </div>
     </div>
   </div>
@@ -699,7 +1553,7 @@
   <!-- ===== 开源致谢 ===== -->
   <div id="credits-modal" class="modal-overlay hidden">
     <div class="modal">
-      <div class="modal-head"><span>📜 致谢 · 开源软件</span><button class="modal-close" id="credits-close">✕</button></div>
+      <div class="modal-head"><span><svg class="ic"><use href="#i-file-text"/></svg> 致谢 · 开源软件</span><button class="modal-close" id="credits-close">✕</button></div>
       <div class="wizard-body">
         <p class="hint">本应用与知识库使用了以下开源软件，特此致谢（点击名称可打开 GitHub）：</p>
         <div id="credits-list" class="credits-list"></div>
@@ -713,7 +1567,7 @@
   <!-- ===== 图片编辑（旋转 / 框选） ===== -->
   <div id="img-edit-modal" class="modal-overlay hidden">
     <div class="modal modal-lg">
-      <div class="modal-head"><span>🖼 图片编辑（旋转 / 框选）</span><button class="modal-close" id="img-edit-close">✕</button></div>
+      <div class="modal-head"><span><svg class="ic"><use href="#i-image"/></svg> 图片编辑（旋转 / 框选）</span><button class="modal-close" id="img-edit-close">✕</button></div>
       <div class="wizard-body">
         <div class="img-edit-toolbar">
           <button class="btn-outline" id="img-rot-left">⟲ 左转90°</button>
@@ -722,17 +1576,17 @@
             <input type="range" id="img-rot-slider" min="-180" max="180" value="0" step="1" />
             <span id="img-rot-val">0°</span>
           </label>
-          <button class="btn-outline" id="img-crop-toggle">🎯 框选</button>
-          <button class="btn-outline" id="img-reset">↺ 重置</button>
+          <button class="btn-outline" id="img-crop-toggle"><svg class="ic"><use href="#i-crop"/></svg> 框选</button>
+          <button class="btn-outline" id="img-reset"><svg class="ic"><use href="#i-refresh"/></svg> 重置</button>
         </div>
         <div class="img-edit-stage" id="img-edit-stage">
           <canvas id="img-edit-canvas"></canvas>
         </div>
-        <p class="hint" id="img-edit-status">点「🎯 框选」后在图片上拖拽，仅保留框内区域；「✅ 应用图片」后替换当前图片。</p>
+        <p class="hint" id="img-edit-status">点「框选」后在图片上拖拽，仅保留框内区域；「应用图片」后替换当前图片。</p>
       </div>
       <div class="modal-actions">
         <button class="btn-outline" id="img-edit-cancel">取消</button>
-        <button class="btn-primary" id="img-edit-apply">✅ 应用图片</button>
+        <button class="btn-primary" id="img-edit-apply"><svg class="ic"><use href="#i-check"/></svg> 应用图片</button>
       </div>
     </div>
   </div>
@@ -740,9 +1594,9 @@
   <!-- ===== 版本更新内容 ===== -->
   <div id="version-modal" class="modal-overlay hidden">
     <div class="modal modal-lg">
-      <div class="modal-head"><span>📦 版本更新内容</span><button class="modal-close" id="version-close">✕</button></div>
+      <div class="modal-head"><span><svg class="ic"><use href="#i-file-text"/></svg> 版本更新内容</span><button class="modal-close" id="version-close">✕</button></div>
       <div class="wizard-body">
-        <div class="version-now">当前版本 <b id="version-now-tag">v1.9.1</b> · Copyright © 2024-2026 Kfdzcoffee</div>
+        <div class="version-now">当前版本 <b id="version-now-tag">v1.10.0</b> · Copyright © 2024-2026 Kfdzcoffee</div>
         <div id="version-list" class="version-list"></div>
       </div>
       <div class="modal-actions">
@@ -754,7 +1608,7 @@
   <!-- ===== 更新下载进度 ===== -->
   <div id="dl-modal" class="modal-overlay hidden">
     <div class="modal">
-      <div class="modal-head"><span>🎵 下一曲即将奏响！</span><button class="modal-close" id="dl-close">✕</button></div>
+      <div class="modal-head"><span>下载新版本</span><button class="modal-close" id="dl-close">✕</button></div>
       <div class="wizard-body">
         <div class="dl-status" id="dl-status">正在下载新版本…</div>
         <div class="dl-bar-wrap"><div class="dl-bar" id="dl-bar"></div></div>
@@ -762,7 +1616,7 @@
           <span id="dl-pct">0%</span>
           <span class="hint" id="dl-size"></span>
         </div>
-        <p class="hint" id="dl-tip">关闭此弹窗不会中断下载，可随时点击「📥 下载进度」按钮再次打开查看。</p>
+        <p class="hint" id="dl-tip">关闭此弹窗不会中断下载，可随时点击「下载进度」按钮再次打开查看。</p>
       </div>
       <div class="modal-actions">
         <button class="btn-outline" id="dl-close2">后台下载（关闭弹窗）</button>
@@ -773,14 +1627,14 @@
   <!-- ===== 新增用户 ===== -->
   <div id="add-user-modal" class="modal-overlay hidden">
     <div class="modal">
-      <div class="modal-head"><span>👥 新增用户</span><button class="modal-close" id="add-user-close">✕</button></div>
+      <div class="modal-head"><span><svg class="ic"><use href="#i-users"/></svg> 新增用户</span><button class="modal-close" id="add-user-close">✕</button></div>
       <div class="wizard-body">
         <div class="field">
           <label>用户知识库文件夹（该用户使用的知识库位置）</label>
           <div class="ws-row">
             <input id="add-user-dir" class="git-msg" readonly placeholder="选择该用户的知识库文件夹（可选已有或新建）" />
             <button class="btn-outline" id="add-user-dir-btn">选择文件夹…</button>
-            <button class="btn-outline" id="add-user-new-btn">➕ 新建文件夹…</button>
+            <button class="btn-outline" id="add-user-new-btn"><svg class="ic"><use href="#i-plus"/></svg> 新建文件夹…</button>
           </div>
         </div>
         <div class="field hidden" id="add-user-new-field">
@@ -803,7 +1657,7 @@
   <!-- ===== 环境配置（可选） ===== -->
   <div id="env-config-modal" class="modal-overlay hidden">
     <div class="modal">
-      <div class="modal-head"><span>🛠 环境配置（可选）</span><button class="modal-close" id="env-config-close">✕</button></div>
+      <div class="modal-head"><span><svg class="ic"><use href="#i-settings"/></svg> 环境配置（可选）</span><button class="modal-close" id="env-config-close">✕</button></div>
       <div class="wizard-body">
         <p class="hint">环境配置为<strong>可选项</strong>。即使已安装也可勾选重新配置（重装）。若配置环境不当（版本过旧 / 安装路径异常 / 未加入系统 PATH 等），可能导致 Git 同步、知识库构建、网页预览等服务无法正常使用。</p>
         <div id="env-config-list" class="env-config-list"></div>
@@ -833,10 +1687,10 @@
   <!-- ===== 安装风险告知书 ===== -->
   <div id="risk-modal" class="modal-overlay hidden">
     <div class="modal">
-      <div class="modal-head"><span>⚠️ 安装风险告知书</span><button class="modal-close" id="risk-close">✕</button></div>
+      <div class="modal-head"><span>安装风险告知书</span><button class="modal-close" id="risk-close">✕</button></div>
       <div class="wizard-body">
         <div class="warn-box">
-          <div class="warn-icon">⚠️</div>
+          <div class="warn-icon">!</div>
           <h3>风险告知 · 请仔细阅读</h3>
           <p>你将通过「命令安装」自动下载并安装以下软件到本机：<b id="risk-items"></b></p>
           <p>上述软件来源于互联网。本应用仅代为执行安装命令，<strong>不对其安全性、完整性、可靠性负责</strong>。请确认来源可信、自行评估风险后再继续。</p>
@@ -851,10 +1705,78 @@
     </div>
   </div>
 
+  <!-- ===== 本机模型安装向导 ===== -->
+  <div id="local-wizard-modal" class="modal-overlay hidden">
+    <div class="modal modal-lg">
+      <div class="modal-head"><span><svg class="ic"><use href="#i-settings"/></svg> 本机模型安装向导</span><button class="modal-close" id="local-wizard-close">✕</button></div>
+      <div class="wizard-body">
+        <!-- 步骤指示 -->
+        <div class="lw-steps">
+          <div class="lw-step" data-lw-step="1"><span class="lw-num">1</span>系统依赖</div>
+          <div class="lw-step" data-lw-step="2"><span class="lw-num">2</span>设备检测</div>
+          <div class="lw-step" data-lw-step="3"><span class="lw-num">3</span>选择模型</div>
+          <div class="lw-step" data-lw-step="4"><span class="lw-num">4</span>安装</div>
+        </div>
+
+        <!-- 步骤1：系统依赖 -->
+        <div class="lw-pane" data-lw-pane="1">
+          <p class="hint">本机运行模型需要以下系统依赖。缺失的项目会自动勾选，可一键补齐。</p>
+          <div id="lw-env-list" class="env-check">
+            <div class="env-check-head">
+              <span>系统依赖检测</span>
+              <button class="btn-mini" id="lw-env-check"><svg class="ic"><use href="#i-search"/></svg> 重新检测</button>
+            </div>
+            <div id="lw-env-items"></div>
+          </div>
+          <div class="field">
+            <label>安装 / 下载位置（可选）</label>
+            <div class="ws-row">
+              <input id="lw-env-dir" class="git-msg" readonly placeholder="命令安装的目标位置（留空则用默认位置）" />
+              <button class="btn-outline" id="lw-env-dir-btn">选择…</button>
+            </div>
+          </div>
+          <p class="hint" id="lw-env-status"></p>
+        </div>
+
+        <!-- 步骤2：设备检测 -->
+        <div class="lw-pane hidden" data-lw-pane="2">
+          <p class="hint">检测当前设备的 CPU / 内存 / 显卡，判断是否适合本机运行模型。</p>
+          <div id="lw-device-result" class="lw-device"></div>
+          <div class="ws-row" style="margin-top:10px">
+            <button class="btn-outline" id="lw-device-detect"><svg class="ic"><use href="#i-search"/></svg> 重新检测设备</button>
+          </div>
+        </div>
+
+        <!-- 步骤3：选择模型 -->
+        <div class="lw-pane hidden" data-lw-pane="3">
+          <p class="hint">根据设备情况选择要安装的模型。视觉模型可识别图片，文本模型适合问答与推理。</p>
+          <div id="lw-model-list" class="lw-model-list"></div>
+        </div>
+
+        <!-- 步骤4：安装 -->
+        <div class="lw-pane hidden" data-lw-pane="4">
+          <p class="hint">正在安装所选模型，首次下载可能需要较长时间，请耐心等待。</p>
+          <div class="lw-install-status" id="lw-install-status">准备就绪。</div>
+          <div class="lw-install-bar-wrap">
+            <div class="dl-bar-wrap"><div class="dl-bar" id="lw-install-bar"></div></div>
+            <span class="lw-pct" id="lw-install-pct">0%</span>
+          </div>
+          <p class="hint" id="lw-install-tip"></p>
+          <div class="lw-log" id="lw-install-log"></div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-outline" id="lw-back">上一步</button>
+        <button class="btn-primary" id="lw-next">下一步 →</button>
+        <button class="btn-outline hidden" id="lw-done">完成</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== 导出数据 ===== -->
   <div id="data-export-modal" class="modal-overlay hidden">
     <div class="modal">
-      <div class="modal-head"><span>⬆️ 导出数据</span><button class="modal-close" id="data-export-close">✕</button></div>
+      <div class="modal-head"><span><svg class="ic"><use href="#i-upload"/></svg> 导出数据</span><button class="modal-close" id="data-export-close">✕</button></div>
       <div class="wizard-body">
         <p class="hint">选择要导出的用户（连同其整个知识库文件），打包为 .zip 数据包。</p>
         <div id="data-export-users" class="users-list"></div>
@@ -870,7 +1792,7 @@
   <!-- ===== 导入数据 ===== -->
   <div id="data-import-modal" class="modal-overlay hidden">
     <div class="modal">
-      <div class="modal-head"><span>⬇️ 导入数据</span><button class="modal-close" id="data-import-close">✕</button></div>
+      <div class="modal-head"><span><svg class="ic"><use href="#i-download"/></svg> 导入数据</span><button class="modal-close" id="data-import-close">✕</button></div>
       <div class="wizard-body">
         <p class="hint">数据包：<b id="data-import-file">—</b> · 含 <span id="data-import-count">0</span> 个用户 · 导出时间：<span id="data-import-time">—</span></p>
         <div class="field">
@@ -904,7 +1826,7 @@
   <div id="focus-fullscreen" class="focus-fullscreen hidden">
     <button class="fs-close" id="fs-close">✕</button>
     <div class="fs-inner">
-      <div class="fs-title">⏱ 专注计时</div>
+      <div class="fs-title">专注计时</div>
       <div id="focus-clock-big" class="flip-clock flip-clock-big"></div>
       <div class="fs-info" id="fs-info"></div>
     </div>
@@ -914,16 +1836,16 @@
   <div id="confirm-modal" class="modal-overlay hidden">
     <div class="modal">
       <div class="modal-head">
-        <span>⚠️ 需要你的确认</span>
+        <span>需要你的确认</span>
         <button class="modal-close" id="confirm-cancel-x">✕</button>
       </div>
-      <div class="modal-tool" id="confirm-tool"></div>
+      <div class="modal-tool" id="confirm-tool"><svg class="ic"><use href="#i-help-circle"/></svg><span id="confirm-tool-text">确认操作</span></div>
       <div class="modal-summary" id="confirm-summary"></div>
       <div class="modal-diff-wrap">
         <div class="md-body" id="confirm-diff"></div>
       </div>
       <div class="confirm-edit-field hidden" id="confirm-edit-field">
-        <label for="confirm-edit">✏️ 可在此直接修改 AI 生成的内容（确认后将写入修改后的内容）</label>
+        <label for="confirm-edit">可在此直接修改 AI 生成的内容（确认后将写入修改后的内容）</label>
         <textarea id="confirm-edit" class="editor" spellcheck="false"></textarea>
       </div>
       <div class="modal-actions">
@@ -937,7 +1859,7 @@
   <div id="ask-modal" class="modal-overlay hidden">
     <div class="modal">
       <div class="modal-head">
-        <span>❓ AI 需要你的确认</span>
+        <span>AI 需要你的确认</span>
         <button class="modal-close" id="ask-close">✕</button>
       </div>
       <div class="modal-summary" id="ask-question"></div>
@@ -955,11 +1877,62 @@
     </div>
   </div>
 
+  <!-- ===== 通用输入弹窗（新建错题组等） ===== -->
+  <div id="input-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-head">
+        <span id="input-title">输入</span>
+        <button class="modal-close" id="input-close">✕</button>
+      </div>
+      <div class="modal-summary" id="input-desc"></div>
+      <div class="modal-diff-wrap">
+        <div class="field">
+          <label id="input-label">名称</label>
+          <input id="input-value" placeholder="请输入…" />
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-outline" id="input-cancel">取消</button>
+        <button class="btn-primary" id="input-ok">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 删除错题组（转移 / 全部删除） ===== -->
+  <div id="group-del-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-head">
+        <span>删除错题组</span>
+        <button class="modal-close" id="group-del-close">✕</button>
+      </div>
+      <div class="modal-summary" id="group-del-desc"></div>
+      <div class="modal-diff-wrap">
+        <div class="field">
+          <label class="gd-opt">
+            <input type="radio" name="gd-mode" value="move" checked />
+            <span>将组内错题转移到：</span>
+          </label>
+          <select id="group-del-move-select" style="margin-left:24px;max-width:280px;"></select>
+        </div>
+        <div class="field">
+          <label class="gd-opt">
+            <input type="radio" name="gd-mode" value="delete" />
+            <span>全部直接删除（组内错题将一并删除，不可恢复）</span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-outline" id="group-del-cancel">取消</button>
+        <button class="btn-primary" id="group-del-ok">删除</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== Token 消耗预警 ===== -->
   <div id="token-warn-modal" class="modal-overlay hidden">
     <div class="modal">
       <div class="modal-head">
-        <span>⚠️ Token 消耗预警</span>
+        <span>Token 消耗预警</span>
         <button class="modal-close" id="token-warn-close">✕</button>
       </div>
       <div class="modal-summary" id="token-warn-summary"></div>
@@ -972,12 +1945,12 @@
   <!-- ===== 初始化向导 ===== -->
   <div id="wizard" class="modal-overlay hidden">
     <div class="modal modal-lg">
-      <div class="modal-head"><span>🚀 欢迎使用学习助手 · 初始化配置</span></div>
+      <div class="modal-head"><span>欢迎使用学习助手 · 初始化配置</span></div>
       <div class="wizard-body">
         <!-- 步骤0：欢迎 -->
         <div id="wiz-step0">
           <div class="welcome-box">
-            <div class="welcome-icon">👋</div>
+            <div class="welcome-icon"><svg class="ic ic-lg"><use href="#i-zap"/></svg></div>
             <h2>欢迎来到学习助手</h2>
             <p>让我们一起开始配置吧！只需几步，即可开始整理错题、分析作文、预测分数、专注复习。</p>
           </div>
@@ -987,9 +1960,9 @@
         <div id="wiz-step1">
           <div class="env-check">
             <div class="env-check-head">
-              <span class="hint">🖥 环境检测（git / node / npm）</span>
-              <button class="btn-mini" id="wiz-env-check">🔍 重新检测</button>
-              <button class="btn-mini" id="wiz-env-config">🛠 配置 / 重装环境（可选）</button>
+              <span class="hint">环境检测（git / node / npm）</span>
+              <button class="btn-mini" id="wiz-env-check"><svg class="ic"><use href="#i-search"/></svg> 重新检测</button>
+              <button class="btn-mini" id="wiz-env-config"><svg class="ic"><use href="#i-settings"/></svg> 配置 / 重装环境（可选）</button>
             </div>
             <div id="wiz-env-list" class="env-list"></div>
           </div>
@@ -1051,7 +2024,7 @@
           </div>
           <div class="ws-row">
             <button class="btn-outline" id="wiz-git-save">保存 Git 配置</button>
-            <button class="btn-outline" id="wiz-git-test">🔍 测试连接 / 授权</button>
+            <button class="btn-outline" id="wiz-git-test"><svg class="ic"><use href="#i-search"/></svg> 测试连接 / 授权</button>
             <span class="hint" id="wiz-git-status"></span>
           </div>
           <p class="hint">HTTPS 推送凭据由系统凭据管理器保存；「测试连接」会触发 GitHub 授权，可在初始化后于「设置 → Git 授权配置」中清除凭据。</p>
@@ -1059,18 +2032,18 @@
 
         <!-- 步骤3：是否导入数据 -->
         <div id="wiz-step3" class="hidden">
-          <p class="hint">5. 是否需要导入已有数据（从他人导出的 .json 文件）？</p>
+          <p class="hint">5. 是否需要导入已有数据（从他人导出的 .zip 数据包）？</p>
           <div class="ws-row">
-            <button class="btn-outline" id="wiz-import">⬇️ 导入数据（可选）</button>
+            <button class="btn-outline" id="wiz-import"><svg class="ic"><use href="#i-download"/></svg> 导入数据（可选）</button>
             <span class="hint" id="wiz-import-status">不需要可直接点「下一步」跳过。</span>
           </div>
-          <p class="hint">导入会覆盖同名文件并应用其设置（不含 API Key）；也可稍后在「设置 → 数据」中导入。</p>
+          <p class="hint">导入会解压到所选文件夹并应用其设置（不含 API Key）；也可稍后在「设置 → 数据」中导入。</p>
         </div>
 
         <!-- 步骤4：AI 责任声明 -->
         <div id="wiz-step4" class="hidden">
           <div class="warn-box">
-            <div class="warn-icon">⚠️</div>
+            <div class="warn-icon">!</div>
             <h3>重要声明 · 请务必阅读</h3>
             <p>本服务基于人工智能（AI）模型生成内容。AI 所输出的文字、分析、答案及学习建议，均可能存在错误、疏漏或偏差；使用者须对基于本服务所生成内容的正确性、合规性，以及由此引发的一切后果，自行承担全部责任。</p>
             <p>本工具仅作为辅助学习之用途，请勿过分依赖 AI。对 AI 生成的任何内容，均应结合教材、教师讲解及权威资料进行核实与甄别；未经核验的内容，不得直接用于正式考试作答、作业提交或对外传播，以免对学业造成损害。</p>
@@ -1082,7 +2055,7 @@
         <!-- 步骤5：协议 -->
         <div id="wiz-step5" class="hidden">
           <div class="agree-notice">
-            <div class="agree-icon">📜</div>
+            <div class="agree-icon"><svg class="ic ic-lg"><use href="#i-file-text"/></svg></div>
             <div>
               <h3>本软件适用于《学习助手-Study Assistant 开源终端软件使用许可协议》</h3>
               <p>使用本软件即表示您知悉并同意：本软件的使用及所提供的服务，均受《学习助手-Study Assistant 开源终端软件使用许可协议》之约束。请仔细阅读下方协议全文后再行确认。</p>
@@ -1097,13 +2070,13 @@
         <!-- 步骤6：完成 -->
         <div id="wiz-step6" class="hidden">
           <div class="welcome-box">
-            <div class="welcome-icon big">🥳</div>
+            <div class="welcome-icon big"><svg class="ic ic-lg"><use href="#i-check"/></svg></div>
             <h2>恭喜你完成配置！</h2>
             <p>所有基础设置已完成，现在可以开始使用学习助手啦：</p>
             <ul class="finish-list">
-              <li>✍️ 错题录入 · 🤖 AI 归纳 · 手动录入</li>
-              <li>📝 作文分析 · 🎯 分数预测 · 📊 错题统计与全文搜索</li>
-              <li>⏱ 专注计时 · 👥 多用户 · 🔁 Git 同步 · 🌐 网页预览</li>
+              <li>错题录入 · AI 归纳 · 手动录入</li>
+              <li>作文分析 · 分数预测 · 错题统计与全文搜索</li>
+              <li>专注计时 · 多用户 · Git 同步 · 网页预览</li>
             </ul>
             <p>点击下方「开始使用」，祝你学习进步！</p>
           </div>
@@ -1112,7 +2085,7 @@
       <div class="modal-actions">
         <button class="btn-outline hidden" id="wiz-back">← 上一步</button>
         <button class="btn-primary" id="wiz-next">下一步：Git 配置 →</button>
-        <button class="btn-primary hidden" id="wiz-done">🚀 开始使用</button>
+        <button class="btn-primary hidden" id="wiz-done"><svg class="ic"><use href="#i-zap"/></svg> 开始使用</button>
       </div>
     </div>
   </div>

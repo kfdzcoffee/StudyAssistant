@@ -22,7 +22,20 @@
     records: [],
     focus: { running: false, start: 0, acc: 0, timer: null },
     examSel: new Map(),
-    detailKey: '', detailFile: '', detailN: 0
+    detailKey: '', detailFile: '', detailN: 0,
+    detailList: [], detailIdx: -1, // 详情切换：当前错题所在列表及位置
+    entryAttachments: [], // 录入时待上传的附件（{name, dataUrl}）
+    essayDraft: null, // 作文草稿 { file, content }：改变的内容展示版
+    localModelCatalog: []
+  };
+
+  // 熟悉程度标签（与 error-bank 的 FAMILIARITY 对应）
+  const FAMILIARITY_LABEL = {
+    unfamiliar: '生疏',
+    vague: '模糊',
+    medium: '中等',
+    familiar: '熟悉',
+    mastered: '掌握'
   };
 
   // ---------- 工具函数 ----------
@@ -76,13 +89,17 @@
   }
 
   // ---------- 视图切换 ----------
-  const VIEW_TITLES = { home: '首页', chat: 'AI 助手', entry: '错题录入', essay: '作文分析', score: '分数预测', college: '目标院校', stats: '错题统计', archive: '档案编辑', git: 'Git 同步', preview: '网页预览', users: '用户', settings: '设置' };
+  const VIEW_TITLES = { home: '首页', chat: 'AI 助手', entry: '错题录入', essay: '作文分析', score: '分数预测', college: '目标院校', todos: '任务待办', vocab: '生词本', review: '词语复习', wenyan: '文言文', papers: '试卷', stats: '错题统计', archive: '档案编辑', git: 'Git 同步', preview: '网页预览', users: '用户', settings: '设置' };
   function switchView(name) {
     state.currentView = name;
     document.querySelectorAll('.view').forEach((v) => v.classList.remove('active'));
     $('view-' + name).classList.add('active');
     document.querySelectorAll('.nav-item').forEach((b) => {
       b.classList.toggle('active', b.dataset.view === name);
+    });
+    // 若目标视图在收起的分组内，自动展开该分组
+    document.querySelectorAll('.nav-group').forEach((g) => {
+      if (g.querySelector('.nav-item[data-view="' + name + '"]')) g.open = true;
     });
     const t = $('tb-title'); if (t) t.textContent = VIEW_TITLES[name] || name;
     if (name === 'preview') loadPreview();
@@ -92,6 +109,11 @@
     if (name === 'college') loadCollege();
     if (name === 'users') loadUsers();
     if (name === 'settings') loadGitConfig();
+    if (name === 'todos') loadTodos();
+    if (name === 'vocab') loadVocab();
+    if (name === 'review') loadReview();
+    if (name === 'wenyan') loadWenyan();
+    if (name === 'papers') loadPapers();
   }
 
   // ---------- 图片读取（可选 OCR / 编辑） ----------
@@ -440,12 +462,67 @@
   function switchDone(el) { /* placeholder 便于扩展 */ }
 
   function pickProvider() {
+    if (state.config && state.config.modelRuntime && state.config.modelRuntime.mode === 'local') return 'local';
     const cfg = state.config;
     const list = Object.values(cfg.providers).filter((p) => p.enabled && p.apiKey);
     if (list.length === 0) return cfg.activeProvider || 'deepseek';
     const active = cfg.providers[cfg.activeProvider];
     if (active && active.enabled && active.apiKey) return active.id;
     return list[0].id;
+  }
+
+  // ---------- 附件压缩（canvas 压缩为 JPEG，节省存储空间） ----------
+  // 将图片文件压缩为 dataUrl；长边超过 maxDim 则等比缩放，质量 quality
+  function compressImageFile(file, maxDim, quality) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          let w = img.width, h = img.height;
+          const m = maxDim || 1600;
+          if (Math.max(w, h) > m) {
+            const r = m / Math.max(w, h);
+            w = Math.round(w * r); h = Math.round(h * r);
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', quality || 0.72));
+        };
+        img.onerror = () => reject(new Error('图片解析失败'));
+        img.src = reader.result;
+      };
+      reader.onerror = () => reject(new Error('文件读取失败'));
+      reader.readAsDataURL(file);
+    });
+  }
+  // 渲染录入区附件预览
+  function renderEntryAttachments() {
+    const wrap = $('entry-attach-preview');
+    if (!wrap) return;
+    if (!state.entryAttachments.length) { wrap.innerHTML = ''; return; }
+    wrap.innerHTML = state.entryAttachments.map((a, i) =>
+      '<div class="attach-thumb"><img src="' + a.dataUrl + '" /><button type="button" class="at-del" data-i="' + i + '">✕</button></div>'
+    ).join('');
+    wrap.querySelectorAll('.at-del').forEach((b) => {
+      b.addEventListener('click', () => {
+        state.entryAttachments.splice(parseInt(b.dataset.i, 10), 1);
+        renderEntryAttachments();
+      });
+    });
+  }
+  // 上传附件到指定错题（压缩后）
+  async function uploadAttachments(number) {
+    const list = state.entryAttachments;
+    if (!list.length) return 0;
+    let ok = 0;
+    for (const a of list) {
+      const r = await api.errorBank.addAttachment(number, { name: a.name, dataUrl: a.dataUrl }).catch(() => null);
+      if (r && r.ok) ok++;
+    }
+    return ok;
   }
 
   // ---------- Git 流程 ----------
@@ -475,7 +552,9 @@
   });
 
   function showConfirm(req) {
-    $('confirm-tool').textContent = '🔧 ' + req.tool + (req.target ? '  →  ' + req.target : '');
+    const tool = $('confirm-tool');
+    tool.querySelector('use').setAttribute('href', '#i-tool');
+    $('confirm-tool-text').textContent = req.tool + (req.target ? '  →  ' + req.target : '');
     $('confirm-summary').textContent = req.summary || 'AI 请求执行以下操作';
     const diffEl = $('confirm-diff');
     diffEl.innerHTML = '';
@@ -609,7 +688,9 @@
   function askYesNo(text) {
     return new Promise((resolve) => {
       state.yesNoResolve = resolve;
-      $('confirm-tool').textContent = '❓ 确认操作';
+      const tool = $('confirm-tool');
+      tool.querySelector('use').setAttribute('href', '#i-help-circle');
+      $('confirm-tool-text').textContent = '确认操作';
       $('confirm-summary').textContent = text;
       const d = $('confirm-diff');
       d.innerHTML = '<div class="hint">该操作由你主动发起，确认后将自动依次执行。</div>';
@@ -620,6 +701,47 @@
       $('confirm-modal').classList.remove('hidden');
     });
   }
+
+  // ---------- 通用输入弹窗（替代 window.prompt，Electron 渲染进程不支持 prompt） ----------
+  let inputResolve = null;
+  function askInput(opts) {
+    return new Promise((resolve) => {
+      inputResolve = resolve;
+      $('input-title').textContent = (opts && opts.title) || '输入';
+      $('input-desc').textContent = (opts && opts.desc) || '';
+      $('input-label').textContent = (opts && opts.label) || '名称';
+      const v = $('input-value');
+      v.value = (opts && opts.value) || '';
+      v.placeholder = (opts && opts.placeholder) || '请输入…';
+      $('input-modal').classList.remove('hidden');
+      setTimeout(() => { v.focus(); v.select(); }, 30);
+    });
+  }
+  function hideInput() {
+    $('input-modal').classList.add('hidden');
+    inputResolve = null;
+  }
+  $('input-ok').addEventListener('click', () => {
+    const r = inputResolve;
+    const val = $('input-value').value;
+    hideInput();
+    if (r) r(val);
+  });
+  $('input-cancel').addEventListener('click', () => {
+    const r = inputResolve;
+    hideInput();
+    if (r) r(null);
+  });
+  $('input-close').addEventListener('click', () => {
+    const r = inputResolve;
+    hideInput();
+    if (r) r(null);
+  });
+  $('input-value').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); $('input-ok').click(); }
+    if (e.key === 'Escape') { e.preventDefault(); $('input-cancel').click(); }
+  });
+
   // 恢复按钮文案
   const approveBtn = $('confirm-approve');
   const rejectBtn = $('confirm-reject');
@@ -688,16 +810,16 @@
 
   // ---------- 首页：鸡汤 ----------
   const QUOTES = [
-    { emoji: '💪', text: '不积跬步，无以至千里；不积小流，无以成江海。' },
-    { emoji: '🌱', text: '把每一天当作最后冲刺的一天，全力以赴，不留遗憾。' },
-    { emoji: '📚', text: '好好学习，天天向上。今天的努力，是明天的底气。' },
-    { emoji: '🚀', text: '乾坤未定，你我皆是黑马。' },
-    { emoji: '🧗', text: '那些看似不起波澜的日复一日，会在某天让你看到坚持的意义。' },
-    { emoji: '🔥', text: '关关难过关关过，前路漫漫亦灿灿。' },
-    { emoji: '🌟', text: '你背过的每一个单词、算过的每一道题，都不会辜负你。' },
-    { emoji: '⛰️', text: '星光不问赶路人，时光不负有心人。' },
-    { emoji: '✊', text: '现在流的每一滴汗，都是给未来铺的路；现在偷的每一个懒，都是给未来挖的坑。' },
-    { emoji: '🎯', text: '心之所向，素履以往；生如逆旅，一苇以航。' }
+    '不积跬步，无以至千里；不积小流，无以成江海。',
+    '把每一天当作最后冲刺的一天，全力以赴，不留遗憾。',
+    '好好学习，天天向上。今天的努力，是明天的底气。',
+    '乾坤未定，你我皆是黑马。',
+    '那些看似不起波澜的日复一日，会在某天让你看到坚持的意义。',
+    '关关难过关关过，前路漫漫亦灿灿。',
+    '你背过的每一个单词、算过的每一道题，都不会辜负你。',
+    '星光不问赶路人，时光不负有心人。',
+    '现在流的每一滴汗，都是给未来铺的路；现在偷的每一个懒，都是给未来挖的坑。',
+    '心之所向，素履以往；生如逆旅，一苇以航。'
   ];
   let quoteIdx = -1;
   function renderQuote() {
@@ -705,15 +827,11 @@
       const d = new Date();
       quoteIdx = (d.getFullYear() * 372 + d.getMonth() * 31 + d.getDate()) % QUOTES.length;
     }
-    const q = QUOTES[quoteIdx];
-    $('quote-emoji').textContent = q.emoji;
-    $('home-quote').textContent = q.text;
+    $('home-quote').textContent = QUOTES[quoteIdx];
   }
   $('quote-refresh').addEventListener('click', () => {
     quoteIdx = (quoteIdx + 1) % QUOTES.length;
-    const q = QUOTES[quoteIdx];
-    $('quote-emoji').textContent = q.emoji;
-    $('home-quote').textContent = q.text;
+    $('home-quote').textContent = QUOTES[quoteIdx];
   });
 
   // ---------- 首页：高考/中考/自定义 倒计时 ----------
@@ -994,8 +1112,46 @@
 
   // ---------- 错题录入 ----------
   $('entry-date').value = new Date().toISOString().slice(0, 10);
+  // 加载错题组到下拉框
+  async function loadEntryGroups() {
+    const sel = $('entry-group');
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '';
+    try {
+      const r = await api.errorBank.groups();
+      if (r && r.ok && Array.isArray(r.groups)) {
+        r.groups.forEach((g) => {
+          const o = document.createElement('option');
+          o.value = g.name;
+          o.textContent = g.name;
+          sel.appendChild(o);
+        });
+      }
+    } catch (e) { /* 忽略 */ }
+    // 默认选中「默认」错题组
+    if (cur) sel.value = cur;
+    else if (Array.from(sel.options).some((o) => o.value === '默认')) sel.value = '默认';
+  }
+  loadEntryGroups();
   bindImage('entry-img', 'entry-img-btn', 'entry-img-name', 'entry-img-preview', state,
     { ocrBtn: 'entry-ocr', ocrAuto: 'entry-ocr-auto', target: 'entry-question', editBtn: 'entry-img-edit' });
+  // 附件上传（可多张，压缩后随错题保存）
+  $('entry-attach-btn').addEventListener('click', () => $('entry-attach').click());
+  $('entry-attach').addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    $('entry-attach-name').textContent = '压缩中…';
+    for (const f of files) {
+      try {
+        const dataUrl = await compressImageFile(f, 1600, 0.72);
+        state.entryAttachments.push({ name: f.name, dataUrl });
+      } catch (err) { toast('附件处理失败：' + err.message, 3000); }
+    }
+    $('entry-attach-name').textContent = state.entryAttachments.length + ' 个附件';
+    renderEntryAttachments();
+    e.target.value = '';
+  });
   $('entry-subject').addEventListener('change', () => {
     $('entry-newsubj-field').style.display = $('entry-subject').value === '其他（新建科目）' ? '' : 'none';
   });
@@ -1028,7 +1184,7 @@
     });
     state.imageBuf = null;
     if (res && res.ok && res.content) {
-      await addToQueue(res.content, subject);
+      await addToQueue(res.content, subject, $('entry-subject').value === '其他（新建科目）' && $('entry-newsubj-essay').checked);
       toast('📥 已加入待录入区');
     }
   });
@@ -1049,6 +1205,9 @@
     $('entry-img-preview').classList.add('hidden');
     state.ocrUsed = false;
     state.imageBuf = null;
+    state.entryAttachments = [];
+    renderEntryAttachments();
+    $('entry-attach-name').textContent = '';
   });
   $('entry-git').addEventListener('click', gitFlowAuto);
 
@@ -1121,31 +1280,18 @@
   $('manual-save').addEventListener('click', async () => {
     const f = manualCollect();
     if (!f.title && !f.question) { toast('请至少填写「错题标题」或「原题」'); return; }
-    const file = f.subject + '.md';
-    // 读取科目档案，计算下一个题号 N
-    let exists = false, base = 0;
-    try {
-      const r = await api.workspace.read(file);
-      if (r && r.ok) {
-        exists = true;
-        const m1 = r.content.match(/#{2,4}\s*错题\s*(\d+)/g) || [];
-        m1.forEach((mm) => { const v = parseInt(mm.replace(/\D/g, ''), 10); if (v > base) base = v; });
-      }
-    } catch (e) { exists = false; }
-    const n = base + 1;
-    const text = buildManualEntry(Object.assign({}, f, { n }));
-    let res;
-    if (exists) {
-      // 条目前统一加 `---` 分隔线，与知识库既有条目间分隔风格一致
-      res = await api.workspace.append(file, '\n\n---\n\n' + text + '\n');
-    } else {
-      // 新科目：createSubject 会创建 科目.md 并注册到 _sidebar / README
-      res = await api.workspace.createSubject(f.subject, '# ' + f.subject + '\n\n## 错题记录\n\n' + text + '\n');
-    }
-    if (res && res.ok) {
-      renderMd($('manual-preview'), text);
-      $('manual-status').textContent = '✅ 已写入 ' + file + '（错题 ' + n + '），可继续录入下一题';
-      toast('✅ 已写入 ' + file + ' · 错题 ' + n);
+    const type = f.title || '错题';
+    // 生成正文（不含标题行，error-bank 会自动生成「#### 错题 N：类型」标题）
+    const body = buildManualEntry(Object.assign({}, f, { n: 'N' })).replace(/^####\s*错题\s*N\s*[：:]\s*[^\n]*\n?/, '').trim();
+    const res = await api.errorBank.add({
+      type, subject: f.subject, familiarity: 'medium', group: '',
+      source: f.source, date: f.date, content: body,
+      hasEssay: $('manual-subject').value === '其他（新建科目）' && $('manual-newsubj-essay').checked
+    });
+    if (res && res.ok && res.error) {
+      renderMd($('manual-preview'), buildManualEntry(Object.assign({}, f, { n: 'N' })));
+      $('manual-status').textContent = '✅ 已录入 ' + f.subject + ' · ' + type + '（' + res.error.number + '），可继续录入下一题';
+      toast('✅ 已录入 ' + f.subject + ' · ' + type);
       ['manual-title', 'manual-source', 'manual-question', 'manual-reason', 'manual-solution', 'manual-answer', 'manual-tip', 'manual-similar'].forEach((i) => $(i).value = '');
       api.site.refreshStats().catch(() => {});
       api.site.syncSidebar().catch(() => {});
@@ -1161,12 +1307,13 @@
     const m = (content || '').match(/^#{1,4}\s*(.*)$/m);
     return m ? m[1].slice(0, 40) : '错题草稿';
   }
-  async function addToQueue(content, subject) {
+  async function addToQueue(content, subject, hasEssay) {
     state.pendingQueue.push({
       id: Date.now() + Math.random().toString(36).slice(2, 7),
       subject: subject || '未知',
       title: extractTitle(content),
-      content: content || ''
+      content: content || '',
+      hasEssay: !!hasEssay
     });
     renderQueue();
   }
@@ -1211,32 +1358,59 @@
     proc.innerHTML = '';
     state.currentProc = proc;
     state.didWrite = false;
+    // 记录成功写入的项（用于从待录入区移除 + 关联试卷）
+    const written = [];
+    // 录入时选择的熟悉程度 / 错题组 / 来源 / 日期
+    const familiarity = $('entry-familiarity') ? $('entry-familiarity').value : 'medium';
+    const group = $('entry-group') ? $('entry-group').value : '';
+    const source = $('entry-source') ? $('entry-source').value.trim() : '';
+    const date = $('entry-date') ? $('entry-date').value : '';
     for (const subject of Object.keys(grouped)) {
       const items = grouped[subject];
-      const file = subject + '.md';
-      let base = 0;
-      try {
-        const r = await api.workspace.read(file);
-        if (r.ok) {
-          const m1 = r.content.match(/#{2,4}\s*错题\s*(\d+)/g) || [];
-          m1.forEach((n) => { const v = parseInt(n.replace(/\D/g, ''), 10); if (v > base) base = v; });
+      for (const item of items) {
+        // 从草稿 content 提取题目类型（标题行冒号后）与正文
+        let content = item.content || '';
+        let type = item.title || '';
+        const hm = content.match(/^#{1,4}\s*错题\s*\d*\s*[：:]\s*(.*)$/m);
+        if (hm) { type = (hm[1] || '').trim() || type; content = content.replace(/^#{1,4}\s*错题\s*\d*\s*[：:]\s*[^\n]*\n?/, '').trim(); }
+        const r = await api.errorBank.add({
+          type, subject, familiarity, group, source, date, content,
+          hasEssay: item.hasEssay
+        });
+        if (r && r.ok && r.error) {
+          state.didWrite = true;
+          written.push({ subject, number: r.error.number, title: type });
+          addProc(proc, '✅ 已录入 ' + subject + ' · ' + type + '（' + r.error.number + '）', 'ok');
+        } else {
+          addProc(proc, '❌ 录入失败 ' + subject + ' · ' + type + '：' + ((r && r.message) || '未知错误'), 'err');
         }
-      } catch (e) { /* 无文件则新建 */ }
-      let appended = '';
-      items.forEach((item, i) => {
-        let c = item.content || '';
-        c = c.replace(/^#{1,4}\s*错题\s*\d*\s*[：:]\s*/m, '#### 错题 ' + (base + i + 1) + '：');
-        if (!/^#{1,4}\s*错题\s*\d+\s*[：:]/.test(c)) {
-          c = '#### 错题 ' + (base + i + 1) + '：' + extractTitle(c) + '\n\n' + c;
-        }
-        if (!c.endsWith('\n')) c += '\n';
-        appended += '\n---\n\n' + c;
-      });
-      const r = await api.workspace.append(file, appended);
-      addProc(proc, (r.ok ? '✅ 已写入 ' : '❌ 写入失败 ') + file + '（' + items.length + ' 条）', r.ok ? 'ok' : 'err');
-      if (r.ok) state.didWrite = true;
+      }
     }
-    state.pendingQueue = [];
+    // 只移除成功写入的项（失败项保留，便于重试）
+    if (written.length) {
+      const writtenContent = new Set(written.map((w) => w.subject + '|' + (w.title || '')));
+      state.pendingQueue = state.pendingQueue.filter((item) => !writtenContent.has(item.subject + '|' + (item.title || '')));
+    }
+    // 上传录入时选择的附件（关联到本次成功写入的第一道错题）
+    if (written.length && state.entryAttachments.length) {
+      const first = written[0].number;
+      const n = await uploadAttachments(first);
+      if (n) addProc(proc, '📎 已保存 ' + n + ' 个附件到 ' + first, 'ok');
+      state.entryAttachments = [];
+      renderEntryAttachments();
+      $('entry-attach-name').textContent = '';
+    }
+    // 关联所选试卷（手选）—— 双向关联：错题库侧 linkedPapers + 试卷侧 linkedErrors
+    const paperId = $('entry-paper') ? $('entry-paper').value : '';
+    if (paperId && written.length) {
+      const paper = papersData.find((x) => x.id === paperId);
+      for (const w of written) {
+        await api.errorBank.linkPaper(w.number, { id: paperId, name: paper ? paper.name : '', subject: paper ? paper.subject : '' }).catch(() => {});
+        await api.papers.linkError(paperId, { number: w.number, title: w.title, subject: w.subject }).catch(() => {});
+      }
+      addProc(proc, '📄 已关联 ' + written.length + ' 道错题到试卷', 'ok');
+      loadPapers();
+    }
     renderQueue();
     refreshTree();
     api.site.refreshStats().catch(() => {});
@@ -1257,18 +1431,181 @@
   // ---------- 作文分析 ----------
   bindImage('essay-img', 'essay-img-btn', 'essay-img-name', 'essay-img-preview', state,
     { ocrBtn: 'essay-ocr', ocrAuto: 'essay-ocr-auto', target: 'essay-text', editBtn: 'essay-img-edit' });
-  $('essay-submit').addEventListener('click', () => {
+
+  // 解析 AI 草稿（目标文件 + 内容块），展示「改变的内容 · 展示版」
+  function setupEssayDraft(content) {
+    const raw = String(content || '');
+    let file = '';
+    let body = raw.trim();
+    const fm = raw.match(/目标文件：\s*([^\n]+)/);
+    if (fm) file = fm[1].trim();
+    const bm = raw.match(/---\s*内容开始\s*---\n([\s\S]*?)\n---\s*内容结束\s*---/);
+    if (bm && bm[1].trim()) body = bm[1].trim();
+    // 未给出目标文件时按科目推断
+    if (!file) {
+      const subj = ($('essay-subject') || {}).value || '';
+      file = (subj.indexOf('英语') !== -1) ? '英语.md' : '语文.md';
+    }
+    if (!/\.md$/i.test(file)) file = file.replace(/[^\w\u4e00-\u9fa5.-]/g, '') + '.md';
+    state.essayDraft = { file, content: body };
+    $('essay-draft-meta').textContent = '目标文件：' + file + '（合并时将追加到档案末尾）';
+    md($('essay-draft-view'), body);
+    $('essay-draft-edit').value = body;
+    $('essay-draft-edit').style.display = 'none';
+    $('essay-draft-view').style.display = '';
+    $('essay-draft-edit-btn').innerHTML = '<svg class="ic"><use href="#i-edit"/></svg> 编辑';
+    $('essay-draft-cancel-btn').classList.add('hidden');
+    $('essay-draft').classList.remove('hidden');
+    $('essay-draft').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // 编辑 / 完成编辑：切换预览与可编辑 textarea
+  function toggleEssayDraftEdit() {
+    const d = state.essayDraft;
+    if (!d) return;
+    const editBtn = $('essay-draft-edit-btn');
+    const cancelBtn = $('essay-draft-cancel-btn');
+    const isEditing = $('essay-draft-edit').style.display !== 'none';
+    if (!isEditing) {
+      $('essay-draft-edit').style.display = '';
+      $('essay-draft-view').style.display = 'none';
+      editBtn.innerHTML = '<svg class="ic"><use href="#i-check"/></svg> 完成编辑';
+      cancelBtn.classList.remove('hidden');
+    } else {
+      // 保存编辑 → 回到预览
+      d.content = $('essay-draft-edit').value;
+      md($('essay-draft-view'), d.content);
+      $('essay-draft-edit').style.display = 'none';
+      $('essay-draft-view').style.display = '';
+      editBtn.innerHTML = '<svg class="ic"><use href="#i-edit"/></svg> 编辑';
+      cancelBtn.classList.add('hidden');
+    }
+  }
+
+  // 取消编辑：还原为上次保存的内容
+  function cancelEssayDraftEdit() {
+    const d = state.essayDraft;
+    if (!d) return;
+    $('essay-draft-edit').value = d.content;
+    $('essay-draft-edit').style.display = 'none';
+    $('essay-draft-view').style.display = '';
+    $('essay-draft-edit-btn').innerHTML = '<svg class="ic"><use href="#i-edit"/></svg> 编辑';
+    $('essay-draft-cancel-btn').classList.add('hidden');
+  }
+
+  // 从作文草稿内容提取元信息（标题 / 得分 / 等级 / 类型 / 时间 / 来源）
+  function parseEssayMeta(content, topic) {
+    const c = String(content || '');
+    const t = String(topic || '').trim();
+    let title = '';
+    // 优先取草稿小节标题（### 作文 N：标题）
+    const hd = c.match(/^#{2,4}\s*(?:作文|练习作文|考场作文|新作文)[^：:\n]*[：:]\s*([^\n]+)/m);
+    if (hd) { const s = hd[1].trim().replace(/[《》]/g, ''); title = s ? '《' + s + '》' : ''; }
+    // 其次取正文中的《…》
+    if (!title) { const tm = c.match(/《([^》]*)》/); if (tm) title = '《' + tm[1] + '》'; }
+    // 再次取用户填写的题目
+    if (!title && t) { const tm2 = t.match(/《([^》]*)》/); title = tm2 ? '《' + tm2[1] + '》' : '《' + t + '》'; }
+    if (!title) title = '《新作文》';
+    let score = '';
+    const sm = c.match(/\*\*总分[（(]?\d*[）)]?\*\*\s*\|\s*\*?\*?(\d+(?:\.\d+)?)/);
+    if (sm) score = sm[1];
+    else { const sm2 = c.match(/总分[（(]?\d*[）)]?\s*\|\s*\*?\*?(\d+(?:\.\d+)?)/); if (sm2) score = sm2[1]; }
+    let grade = '';
+    const gm = c.match(/(一类|二类|三类|四类)/);
+    if (gm) grade = gm[1];
+    else { const gnum = parseInt(score, 10); if (!isNaN(gnum)) { if (gnum >= 42) grade = '一类'; else if (gnum >= 33) grade = '二类'; else if (gnum >= 25) grade = '三类'; else grade = '四类'; } }
+    let type = /考场/.test(c + ' ' + t) ? '考场' : '练习';
+    const now = new Date();
+    const time = now.getFullYear() + '.' + (now.getMonth() + 1);
+    let source = t || '—';
+    const srcm = c.match(/来源[：:]\s*([^\n]+)/);
+    if (srcm) source = srcm[1].trim();
+    return { title, score, grade, type, time, source };
+  }
+
+  // 在档案顶部「作文档案总览」表格末尾追加一行
+  function appendEssayOverviewRow(md, row) {
+    const re = /(\|\s*序号\s*\|[^\n]*\n(?:\|[^\n]*\n)+)/;
+    const m = md.match(re);
+    if (!m) return md;
+    return md.replace(re, m[1].replace(/\n+$/, '') + '\n' + row + '\n');
+  }
+
+  // 计算档案中现有作文最大编号 + 1（优先读「作文档案总览」表格序号列）
+  function nextEssayNumber(md) {
+    let max = 0, m;
+    // 1) 总览表格序号列（| 7 | 2026.8 | …）
+    const tableRe = /(\|\s*序号\s*\|[^\n]*\n(?:\|[^\n]*\n)+)/;
+    const tm = md.match(tableRe);
+    if (tm) {
+      tm[0].split('\n').forEach((r) => { const cm = r.match(/^\|\s*(\d+)\s*\|/); if (cm) max = Math.max(max, parseInt(cm[1], 10)); });
+    }
+    // 2) 作文 N
+    const r1 = /作文\s*(\d+)/g; while ((m = r1.exec(md))) max = Math.max(max, parseInt(m[1], 10));
+    // 3) X.Y 编号作文小节
+    const r2 = /^#{2,4}\s*(\d+)\.\d+\s*《/gm; while ((m = r2.exec(md))) max = Math.max(max, parseInt(m[1], 10));
+    return max + 1;
+  }
+
+  // 合并到文档：规范化作文小节 → 更新「作文档案总览」表格 → 追加正文 → 询问 push
+  async function mergeEssayDraft() {
+    const d = state.essayDraft;
+    if (!d || !d.file || !(d.content || '').trim()) { toast('没有可合并的内容', 3000); return; }
+    const meta = parseEssayMeta(d.content, ($('essay-topic') || {}).value);
+    const rd = await api.workspace.read(d.file).catch(() => null);
+    if (!rd || !rd.ok) { toast('读取档案失败：' + ((rd && rd.message) || d.file), 4000); return; }
+    let mdContent = rd.content;
+    const n = nextEssayNumber(mdContent);
+    // 规范化正文：统一为可识别的作文小节格式「### 作文 N：标题」
+    let body = d.content.trim();
+    if (!/^#{2,4}\s*(?:作文|练习作文|考场作文|新作文)/.test(body)) {
+      body = '### 作文 ' + n + '：' + meta.title.replace(/[《》]/g, '') + '\n\n' + body;
+    } else {
+      body = body.replace(/^(#{2,4}\s*)(?:作文|练习作文|考场作文|新作文)[^：:\n]*[：:]\s*/, '$1作文 ' + n + '：');
+    }
+    // 更新顶部「作文档案总览」表格
+    const row = '| ' + n + ' | ' + meta.time + ' | ' + meta.type + ' | ' + (meta.source || '—') + ' | ' + meta.title + ' | ' + (meta.score || '—') + ' | ' + (meta.grade || '—') + ' |';
+    mdContent = appendEssayOverviewRow(mdContent, row);
+    const nowStr = new Date().toLocaleString('zh-CN', { hour12: false });
+    const finalMd = mdContent.replace(/\n*$/, '') + '\n\n---\n\n' + body + '\n\n---\n\n*最后更新：' + nowStr + '（合并作文' + meta.title + '分析）*\n';
+    const r = await api.workspace.write(d.file, finalMd).catch(() => null);
+    if (!r || !r.ok) { toast('合并失败：' + ((r && r.message) || '未知错误'), 4000); return; }
+    toast('✅ 已合并到 ' + d.file + '（作文 ' + n + '，总览表格已更新）');
+    state.didWrite = true;
+    api.site.refreshStats().catch(() => {});
+    api.site.syncSidebar().catch(() => {});
+    $('essay-draft').classList.add('hidden');
+    // 弹窗询问是否 push（gitFlowAuto 内部会弹窗确认）
+    await gitFlowAuto();
+  }
+
+  $('essay-draft-edit-btn').addEventListener('click', toggleEssayDraftEdit);
+  $('essay-draft-cancel-btn').addEventListener('click', cancelEssayDraftEdit);
+  $('essay-draft-merge').addEventListener('click', mergeEssayDraft);
+
+  $('essay-submit').addEventListener('click', async () => {
     const subject = $('essay-subject').value;
     const topic = $('essay-topic').value.trim();
     const essay = $('essay-text').value.trim();
+    const region = $('essay-region') ? $('essay-region').value.trim() : '';
+    const total = $('essay-total') ? $('essay-total').value.trim() : '';
+    const draftMode = $('essay-draft-mode') ? $('essay-draft-mode').checked : true;
     let text = '科目：' + subject + '\n';
+    if (region) text += '地区：' + region + '\n';
+    if (total) text += '总分：' + total + '\n';
     if (topic) text += '作文题目/来源：' + topic + '\n';
-    text += (essay ? '作文全文：\n' + essay : '作文全文以附图为准') + '\n\n请按既有作文档案格式进行评分明细、错因逐条分析，并提供纵向与横向对比，写入对应科目档案。';
-    runTask({
+    text += (essay ? '作文全文：\n' + essay : '作文全文以附图为准') + '\n\n请按既有作文档案格式进行评分明细、错因逐条分析，并提供纵向与横向对比，写入对应科目档案。' + (region ? '评分时请参考' + region + '当地作文评分标准。' : '') + (total ? '按满分' + total + '分评分。' : '');
+    $('essay-draft').classList.add('hidden'); // 清掉上一次草稿展示
+    const res = await runTask({
       mode: 'essay-analysis', text, imageBuf: state.imageBuf,
-      procEl: $('essay-proc'), resultEl: $('essay-result'), statusEl: $('essay-status')
+      procEl: $('essay-proc'), resultEl: $('essay-result'), statusEl: $('essay-status'),
+      draftOnly: draftMode
     });
     state.imageBuf = null;
+    // 草稿模式：展示「改变的内容 · 展示版」+ 编辑 / 合并到文档按钮
+    if (res && res.ok && draftMode && String(res.content || '').trim()) {
+      setupEssayDraft(res.content);
+    }
   });
 
   // ---------- 分数预测 ----------
@@ -1453,6 +1790,62 @@
     return out;
   }
 
+  function runtimeModeFromUi() {
+    return $('runtime-mode-local') && $('runtime-mode-local').checked ? 'local' : 'api';
+  }
+
+  function setLocalModeUi(mode) {
+    const local = mode === 'local';
+    const box = $('local-model-box');
+    if (box) box.style.opacity = local ? '1' : '.8';
+    const st = $('local-state');
+    if (st && !local && !st.textContent) st.textContent = '当前为云端 API 模式。';
+  }
+
+  function renderLocalCatalog(selectedId) {
+    const sel = $('local-model-id');
+    if (!sel) return;
+    const list = state.localModelCatalog || [];
+    sel.innerHTML = list.map((m) =>
+      '<option value="' + m.id + '">' +
+      m.name + '｜' + (m.vision ? '视觉' : '文本') + '｜' + (m.size || '') +
+      '</option>'
+    ).join('');
+    if (selectedId) sel.value = selectedId;
+    if (!sel.value && list.length) sel.value = list[0].id;
+    const m = list.find((x) => x.id === sel.value);
+    if ($('local-model-license')) {
+      $('local-model-license').textContent = m
+        ? ('推荐配置：' +
+          (m.recommended && m.recommended.cpuCores ? ('CPU>=' + m.recommended.cpuCores + '核') : '') + ' ' +
+          (m.recommended && m.recommended.ramGB ? ('内存>=' + m.recommended.ramGB + 'GB') : '') + ' ' +
+          (m.recommended && m.recommended.vramGB ? ('显存>=' + m.recommended.vramGB + 'GB') : '') +
+          (m.notes ? ('；说明：' + m.notes) : ''))
+        : '';
+    }
+  }
+
+  async function refreshLocalRuntimeStatus() {
+    const st = $('local-state');
+    const r = await api.localModel.state().catch(() => null);
+    if (!st) return;
+    if (!r || !r.ok) {
+      st.textContent = '状态读取失败';
+      return;
+    }
+    const run = r.running ? '运行中' : '未运行';
+    const installed = (r.installed || []).length;
+    const rt = r.runtime && r.runtime.ok ? '内置引擎可用' : '内置引擎缺失（请先 npm install）';
+    st.textContent = '状态：' + run + '；已缓存模型目录：' + installed + '；' + rt;
+  }
+
+  async function loadLocalCatalog(selectedId) {
+    const r = await api.localModel.catalog().catch(() => null);
+    state.localModelCatalog = (r && r.ok && Array.isArray(r.models)) ? r.models : [];
+    renderLocalCatalog(selectedId);
+    await refreshLocalRuntimeStatus();
+  }
+
   // ---------- 配置应用与设置 ----------
   // 标题栏覆盖层颜色跟随主题（深色/浅色）
   function updateTitleBarOverlay() {
@@ -1476,6 +1869,8 @@
     document.documentElement.dataset.theme = cfg.theme || 'dark';
     updateTitleBarOverlay();
     $('set-theme').value = cfg.theme || 'dark';
+    applyFont(cfg.fontCn, cfg.fontEn);
+    const tvEl = $('set-todo-view'); if (tvEl) tvEl.value = cfg.todoView || 'list';
     const nnEl = $('user-nickname'); if (nnEl) nnEl.value = cfg.nickname || '';
     renderGreeting(cfg.nickname);
     $('set-token-warn').value = cfg.tokenWarn || 500000;
@@ -1496,6 +1891,27 @@
     $('set-exampwd').value = cfg.examPassword || '';
     $('prompt-error').value = cfg.prompts.errorHelper || '';
     $('prompt-study').value = cfg.prompts.studyHelper || '';
+    const mr = Object.assign({ mode: 'api', local: {} }, cfg.modelRuntime || {});
+    const localCfg = Object.assign({ enabled: true, selectedModelId: 'qwen2.5-1.5b', modelStorePath: '', idlePolicy: 'idle_5m', idleMinutes: 5 }, mr.local || {});
+    if ($('runtime-mode-api')) $('runtime-mode-api').checked = mr.mode !== 'local';
+    if ($('runtime-mode-local')) $('runtime-mode-local').checked = mr.mode === 'local';
+    if ($('local-enabled')) $('local-enabled').checked = !!localCfg.enabled;
+    if ($('local-model-dir')) $('local-model-dir').value = localCfg.modelStorePath || '';
+    if ($('local-idle-policy')) $('local-idle-policy').value = localCfg.idlePolicy || 'idle_5m';
+    if ($('local-idle-minutes')) $('local-idle-minutes').value = Number(localCfg.idleMinutes) || 5;
+    setLocalModeUi(mr.mode);
+    loadLocalCatalog(localCfg.selectedModelId).catch(() => {});
+    // 云端同步配置
+    const syncCfg = cfg.sync || {};
+    const se = $('sync-enabled'); if (se) se.checked = !!syncCfg.enabled;
+    const ss = $('sync-server'); if (ss) ss.value = syncCfg.serverUrl || '';
+    const su = $('sync-username'); if (su) su.value = syncCfg.username || '';
+    const sa = $('sync-auto'); if (sa) sa.checked = syncCfg.autoSync !== false;
+    const st = $('sync-status');
+    if (st) {
+      if (syncCfg.token) st.textContent = '已登录' + (syncCfg.lastSync ? '，上次同步：' + new Date(syncCfg.lastSync).toLocaleString() : '');
+      else st.textContent = '未登录。配置服务器地址与账号后点击「登录」。';
+    }
     // OCR 开关与引擎（全局 + 各视图默认同步）
     const ocrAuto = !!(cfg.ocr && cfg.ocr.auto);
     $('set-ocr-auto').checked = ocrAuto;
@@ -1507,6 +1923,9 @@
     const tp = $('tb-path'); if (tp) tp.textContent = cfg.workspacePath || '';
     updateCountdown();
     loadUsers();
+    loadTodos();
+    loadCollegeCarousel();
+    loadPapers();
     if (!cfg.initialized) showWizard(cfg);
     // 启动后自动检查更新（仅已初始化时，延迟等界面与版本信息就绪）
     if (cfg.initialized) setTimeout(checkForUpdateSilent, 2000);
@@ -1516,10 +1935,89 @@
   api.preview.getUrl().then((u) => { state.previewUrl = u; });
   api.app.onPreviewUrl((u) => { state.previewUrl = u; });
 
+  // ---------- 界面字体（设置 → 外观） ----------
+  let fontList = [];
+  function applyFont(cn, en) {
+    const root = document.documentElement;
+    // 中文字体：仅中文字体（不含西文字体，避免西文字体被中文字体覆盖）
+    if (cn) {
+      root.style.setProperty('--font-cn', '"' + cn + '", "HarmonyOS Sans", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif');
+    } else {
+      root.style.setProperty('--font-cn', '"HarmonyOS Sans", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif');
+    }
+    // 西文字体：仅西文字体（不含中文字体，确保西文字符使用西文字体）
+    if (en) {
+      root.style.setProperty('--font-en', '"' + en + '", "Segoe UI", "Helvetica Neue", Arial, sans-serif');
+    } else {
+      root.style.setProperty('--font-en', '"Segoe UI", "Helvetica Neue", Arial, sans-serif');
+    }
+    const selCn = $('set-font-cn');
+    if (selCn) selCn.value = cn || '';
+    const selEn = $('set-font-en');
+    if (selEn) selEn.value = en || '';
+  }
+  function fillFontSelect(sel, current) {
+    if (!sel) return;
+    sel.innerHTML = '<option value="">默认</option>';
+    for (const fam of fontList) {
+      const opt = document.createElement('option');
+      opt.value = fam;
+      opt.textContent = fam;
+      sel.appendChild(opt);
+    }
+    if (current) {
+      const exists = Array.from(sel.options).some((o) => o.value === current);
+      sel.value = exists ? current : '';
+    }
+  }
+  async function loadFonts() {
+    const selCn = $('set-font-cn');
+    const selEn = $('set-font-en');
+    if (!selCn && !selEn) return;
+    const curCn = selCn ? selCn.value : '';
+    const curEn = selEn ? selEn.value : '';
+    try {
+      if (window.queryLocalFonts) {
+        const fonts = await window.queryLocalFonts();
+        const seen = new Set();
+        fontList = [];
+        for (const f of fonts) {
+          const fam = (f.family || '').trim();
+          if (!fam || seen.has(fam)) continue;
+          seen.add(fam);
+          fontList.push(fam);
+        }
+        fontList.sort((a, b) => a.localeCompare(b, 'zh'));
+      } else {
+        // 兜底：常用中文字体
+        fontList = ['微软雅黑', 'Microsoft YaHei', '宋体', 'SimSun', '黑体', 'SimHei', '楷体', 'KaiTi', '仿宋', 'FangSong', 'HarmonyOS Sans SC', 'PingFang SC', 'Noto Sans SC', 'Source Han Sans SC', 'Arial', 'Times New Roman', 'Georgia', 'Verdana', 'Consolas'];
+      }
+    } catch (e) {
+      console.error('加载字体失败：', e);
+    }
+    fillFontSelect(selCn, curCn);
+    fillFontSelect(selEn, curEn);
+  }
+  $('font-refresh').addEventListener('click', loadFonts);
+  $('set-font-cn').addEventListener('change', async () => {
+    const cfg = collectSettings();
+    applyFont(cfg.fontCn, cfg.fontEn);
+    await api.settings.save(cfg);
+  });
+  $('set-font-en').addEventListener('change', async () => {
+    const cfg = collectSettings();
+    applyFont(cfg.fontCn, cfg.fontEn);
+    await api.settings.save(cfg);
+  });
+  loadFonts();
+
   function collectSettings() {
     const cfg = JSON.parse(JSON.stringify(state.config || {}));
     const wsEl = $('user-ws'); if (wsEl) cfg.workspacePath = wsEl.value.trim();
     cfg.theme = $('set-theme').value;
+    cfg.fontCn = $('set-font-cn').value;
+    cfg.fontEn = $('set-font-en').value;
+    const tvEl = $('set-todo-view'); if (tvEl) cfg.todoView = tvEl.value;
     const nnEl = $('user-nickname'); if (nnEl) cfg.nickname = nnEl.value.trim();
     cfg.tokenWarn = Number($('set-token-warn').value) || 500000;
     cfg.exam = {
@@ -1537,6 +2035,26 @@
     });
     cfg.prompts.errorHelper = $('prompt-error').value;
     cfg.prompts.studyHelper = $('prompt-study').value;
+    cfg.modelRuntime = {
+      mode: runtimeModeFromUi(),
+      local: {
+        enabled: $('local-enabled') ? $('local-enabled').checked : true,
+        selectedModelId: $('local-model-id') ? $('local-model-id').value : 'qwen2.5-1.5b',
+        modelStorePath: $('local-model-dir') ? $('local-model-dir').value.trim() : '',
+        idlePolicy: $('local-idle-policy') ? $('local-idle-policy').value : 'idle_5m',
+        idleMinutes: Math.max(1, Number(($('local-idle-minutes') || {}).value) || 5)
+      }
+    };
+    // 云端同步配置
+    const se = $('sync-enabled'), ss = $('sync-server'), su = $('sync-username'), sa = $('sync-auto');
+    if (se && ss && su && sa) {
+      cfg.sync = Object.assign({}, cfg.sync || {}, {
+        enabled: se.checked,
+        serverUrl: ss.value.trim(),
+        username: su.value.trim(),
+        autoSync: sa.checked
+      });
+    }
     return cfg;
   }
 
@@ -1547,11 +2065,391 @@
     toast('✅ 设置已保存');
   });
 
+  if ($('runtime-mode-api')) $('runtime-mode-api').addEventListener('change', () => setLocalModeUi(runtimeModeFromUi()));
+  if ($('runtime-mode-local')) $('runtime-mode-local').addEventListener('change', () => setLocalModeUi(runtimeModeFromUi()));
+  if ($('local-model-id')) $('local-model-id').addEventListener('change', () => renderLocalCatalog(($('local-model-id') || {}).value));
+  if ($('local-model-dir-btn')) $('local-model-dir-btn').addEventListener('click', async () => {
+    const r = await api.localModel.chooseDir().catch(() => null);
+    if (r && r.ok && $('local-model-dir')) $('local-model-dir').value = r.path || '';
+  });
+  if ($('local-refresh')) $('local-refresh').addEventListener('click', async () => {
+    await loadLocalCatalog(($('local-model-id') || {}).value);
+    toast('已刷新本机模型状态');
+  });
+  if ($('local-start')) $('local-start').addEventListener('click', async () => {
+    const r = await api.localModel.start().catch(() => null);
+    toast(r && r.ok ? '本机模型已加载' : '加载失败：' + ((r && r.message) || '未知错误'));
+    await refreshLocalRuntimeStatus();
+  });
+  if ($('local-stop')) $('local-stop').addEventListener('click', async () => {
+    const r = await api.localModel.stop().catch(() => null);
+    toast(r && r.ok ? '本机模型已释放' : '释放失败：' + ((r && r.message) || '未知错误'));
+    await refreshLocalRuntimeStatus();
+  });
+
+  // ---------- 本机模型安装向导 ----------
+  const lwState = { step: 1, envResult: null, device: null, selectedModelId: '' };
+  function lwSetStep(n) {
+    lwState.step = n;
+    document.querySelectorAll('.lw-pane').forEach((p) => p.classList.toggle('hidden', Number(p.dataset.lwPane) !== n));
+    document.querySelectorAll('.lw-step').forEach((s) => s.classList.toggle('active', Number(s.dataset.lwStep) === n));
+    const back = $('lw-back'), next = $('lw-next'), done = $('lw-done');
+    if (back) back.classList.toggle('hidden', n === 1);
+    if (next) next.classList.toggle('hidden', n === 4);
+    if (done) done.classList.toggle('hidden', n !== 4);
+    if (n === 1) lwEnvCheck();
+    if (n === 2) lwDeviceDetect();
+    if (n === 3) lwRenderModels();
+  }
+  function lwOpen() {
+    lwState.step = 1;
+    $('local-wizard-modal').classList.remove('hidden');
+    lwSetStep(1);
+  }
+  function lwClose() { $('local-wizard-modal').classList.add('hidden'); }
+  if ($('local-wizard-open')) $('local-wizard-open').addEventListener('click', lwOpen);
+  if ($('local-wizard-close')) $('local-wizard-close').addEventListener('click', lwClose);
+
+  // 步骤1：系统依赖检测
+  async function lwEnvCheck() {
+    const items = $('lw-env-items');
+    if (!items) return;
+    items.innerHTML = '<span class="hint">检测中…</span>';
+    const r = await api.env.check().catch(() => null);
+    if (!r || !r.ok) { items.innerHTML = '<span class="hint">环境检测失败</span>'; return; }
+    lwState.envResult = r;
+    const defs = [
+      { key: 'git', name: 'Git', url: 'https://git-scm.com/download/win' },
+      { key: 'node', name: 'Node.js', url: 'https://nodejs.org/zh-cn/download' },
+      { key: 'npm', name: 'npm（随 Node.js 安装）', url: 'https://nodejs.org/zh-cn/download' }
+    ];
+    items.innerHTML = '';
+    defs.forEach((d) => {
+      const res = r[d.key] || {};
+      const okk = !!res.ok;
+      const row = document.createElement('div');
+      row.className = 'env-item ' + (okk ? 'ok' : 'err');
+      row.innerHTML =
+        '<label class="ec-check"><input type="checkbox" data-key="' + d.key + '" ' + (okk ? '' : 'checked') + ' /> 配置' + (okk ? '（重装）' : '') + '</label>' +
+        '<span class="ec-name">' + d.name + '</span>' +
+        '<span class="ec-status ' + (okk ? 'ok' : 'err') + '">' + (okk ? '✅ ' + (res.version || '已安装') : '❌ 未安装') + '</span>';
+      items.appendChild(row);
+    });
+    const missing = defs.filter((d) => !(r[d.key] && r[d.key].ok)).map((d) => d.name).join('、');
+    const st = $('lw-env-status');
+    if (st) st.textContent = missing ? '检测到缺失：' + missing + '。可点击「下一步」前先补齐，或直接继续（缺失依赖可能影响部分功能）。' : '✅ 系统依赖齐全。';
+  }
+  if ($('lw-env-check')) $('lw-env-check').addEventListener('click', lwEnvCheck);
+  if ($('lw-env-dir-btn')) $('lw-env-dir-btn').addEventListener('click', async () => {
+    const p = await api.settings.chooseWorkspace();
+    if (p) $('lw-env-dir').value = p;
+  });
+
+  // 步骤2：设备检测
+  async function lwDeviceDetect() {
+    const box = $('lw-device-result');
+    if (!box) return;
+    box.innerHTML = '<span class="hint">检测中…</span>';
+    const id = lwState.selectedModelId || (state.localModelCatalog && state.localModelCatalog[0] && state.localModelCatalog[0].id) || 'qwen2.5-1.5b';
+    const r = await api.localModel.detect(id).catch(() => null);
+    if (!r || !r.ok) { box.innerHTML = '<span class="hint">设备检测失败</span>'; return; }
+    lwState.device = r;
+    const d = r.device || {};
+    const gpu = (d.gpus && d.gpus.length) ? d.gpus.map((g) => g.name + ' ' + g.vramGB + 'GB').join(' / ') : '未检测到独立显卡';
+    const dep = r.runtime && r.runtime.ok ? '内置引擎：可用' : '内置引擎：缺失（请先 npm install）';
+    box.innerHTML =
+      '<div class="lw-device-row"><span>CPU</span><b>' + d.cpuCores + ' 核</b></div>' +
+      '<div class="lw-device-row"><span>内存</span><b>' + d.ramGB + ' GB</b></div>' +
+      '<div class="lw-device-row"><span>显卡</span><b>' + gpu + '</b></div>' +
+      '<div class="lw-device-row"><span>平台</span><b>' + (d.platform || '') + ' / ' + (d.arch || '') + '</b></div>' +
+      '<div class="lw-device-row"><span>内置引擎</span><b>' + dep + '</b></div>' +
+      '<div class="lw-device-verdict ' + (r.recommended ? 'ok' : 'err') + '">' +
+      (r.recommended ? '✅ 当前设备达到所选模型推荐配置。' : '⚠️ 未达推荐配置：' + (r.reasons || []).join('；')) +
+      '</div>';
+  }
+  if ($('lw-device-detect')) $('lw-device-detect').addEventListener('click', lwDeviceDetect);
+
+  // 步骤3：模型列表
+  function lwRenderModels() {
+    const box = $('lw-model-list');
+    if (!box) return;
+    const list = state.localModelCatalog || [];
+    box.innerHTML = '';
+    list.forEach((m) => {
+      const card = document.createElement('div');
+      card.className = 'lw-model-card' + (lwState.selectedModelId === m.id ? ' active' : '');
+      card.dataset.id = m.id;
+      const rec = m.recommended || {};
+      card.innerHTML =
+        '<div class="lw-model-head"><b>' + m.name + '</b><span class="lw-model-tag">' + (m.vision ? '视觉' : '文本') + '</span></div>' +
+        '<div class="lw-model-meta">' + (m.size || '') + ' · ' + (m.license || '') + '</div>' +
+        '<div class="lw-model-note">' + (m.notes || '') + '</div>' +
+        '<div class="lw-model-rec">推荐：CPU>=' + (rec.cpuCores || '-') + '核 内存>=' + (rec.ramGB || '-') + 'GB' + (rec.vramGB ? ' 显存>=' + rec.vramGB + 'GB' : '') + '</div>';
+      card.addEventListener('click', () => {
+        lwState.selectedModelId = m.id;
+        lwRenderModels();
+      });
+      box.appendChild(card);
+    });
+    if (!lwState.selectedModelId && list.length) lwState.selectedModelId = list[0].id;
+  }
+
+  // 步骤4：安装
+  function lwLogLine(text) {
+    const log = $('lw-install-log');
+    if (!log) return;
+    const line = document.createElement('div');
+    line.className = 'lw-log-line';
+    line.textContent = text;
+    log.appendChild(line);
+    log.scrollTop = log.scrollHeight;
+  }
+  function lwSetProgress(pct, text) {
+    const bar = $('lw-install-bar'), pctEl = $('lw-install-pct');
+    const v = Math.max(0, Math.min(100, Math.round(Number(pct) || 0)));
+    if (bar) bar.style.width = v + '%';
+    if (pctEl) pctEl.textContent = v + '%';
+    if (text) lwLogLine(text);
+  }
+  // 监听安装进度事件（主进程推送）
+  api.localModel.onProgress((p) => {
+    if (!p) return;
+    const status = $('lw-install-status');
+    const pct = Number(p.progress);
+    if (p.status === 'download' && pct > 0) {
+      lwSetProgress(pct * 100, (p.message || '') + (p.file ? ' ' + p.file : ''));
+      if (status) status.textContent = '正在下载模型 ' + (p.file || '') + ' … ' + Math.round(pct * 100) + '%';
+    } else if (p.status === 'progress' && pct > 0) {
+      lwSetProgress(pct * 100, (p.message || '') + (p.file ? ' ' + p.file : ''));
+      if (status) status.textContent = '正在加载模型 ' + (p.file || '') + ' … ' + Math.round(pct * 100) + '%';
+    } else if (p.message) {
+      lwLogLine(p.message);
+    }
+  });
+  async function lwInstall() {
+    const id = lwState.selectedModelId;
+    if (!id) { toast('请先选择模型'); return; }
+    const status = $('lw-install-status'), bar = $('lw-install-bar'), tip = $('lw-install-tip');
+    const log = $('lw-install-log');
+    if (log) log.innerHTML = '';
+    if (status) status.textContent = '正在检测设备…';
+    if (bar) bar.style.width = '10%';
+    lwSetProgress(10, '开始安装 ' + id);
+    const det = await api.localModel.detect(id).catch(() => null);
+    if (!det || !det.ok) { if (status) status.textContent = '设备检测失败'; return; }
+    if (det.runtime && !det.runtime.ok) {
+      if (status) status.textContent = '❌ ' + (det.runtime.message || '缺少内置推理依赖，请先 npm install');
+      return;
+    }
+    let force = false;
+    if (!det.recommended) {
+      force = await askYesNo('当前设备未达推荐配置，不建议安装。\n' + (det.reasons || []).join('\n') + '\n\n是否仍继续安装？');
+      if (!force) { if (status) status.textContent = '已取消安装。'; return; }
+    }
+    if (status) status.textContent = '正在下载并安装模型（首次下载较慢，请耐心等待）…';
+    if (bar) bar.style.width = '30%';
+    if (tip) tip.textContent = '模型将缓存到本地目录，安装完成后可离线使用。';
+    lwSetProgress(30, '开始下载模型文件…');
+    const r = await api.localModel.install(id, force).catch(() => null);
+    if (r && r.ok) {
+      lwSetProgress(100, '✅ 模型安装完成');
+      if (bar) bar.style.width = '100%';
+      if (status) status.textContent = '✅ 模型安装完成！可点击「完成」关闭向导，或返回上一步继续安装其他模型。';
+      if (tip) tip.textContent = '';
+      await refreshLocalRuntimeStatus();
+    } else {
+      if (status) status.textContent = '❌ 安装失败：' + ((r && r.message) || '未知错误');
+      if (tip) tip.textContent = '可返回上一步重新选择模型，或检查网络后重试。';
+      lwLogLine('❌ 安装失败：' + ((r && r.message) || '未知错误'));
+    }
+  }
+  if ($('lw-back')) $('lw-back').addEventListener('click', () => lwSetStep(Math.max(1, lwState.step - 1)));
+  if ($('lw-next')) $('lw-next').addEventListener('click', () => {
+    if (lwState.step === 1) {
+      // 补齐缺失依赖（勾选的项目）
+      const checked = [];
+      document.querySelectorAll('#lw-env-items input:checked').forEach((c) => checked.push(c.dataset.key));
+      if (checked.length) {
+        const dir = ($('lw-env-dir').value || '').trim();
+        const st = $('lw-env-status');
+        if (st) st.textContent = '正在通过 winget 自动安装依赖，请稍候…';
+        api.env.install({ items: checked, dir }).then((r) => {
+          if (st) {
+            if (r && r.ok) {
+              const okCount = (r.results || []).filter((x) => x.ok).length;
+              st.textContent = okCount ? '✅ 已自动安装 ' + okCount + ' 项依赖。' : '未安装任何项目。';
+            } else {
+              st.textContent = '依赖安装失败：' + ((r && r.message) || '未知错误') + '。可继续下一步。';
+            }
+          }
+        });
+      }
+    }
+    const next = Math.min(4, lwState.step + 1);
+    lwSetStep(next);
+    // 进入安装步骤时自动开始安装
+    if (next === 4) lwInstall();
+  });
+  if ($('lw-done')) $('lw-done').addEventListener('click', lwClose);
+
+  // ---------- 云端同步 ----------
+  const syncCfgFromForm = () => ({
+    serverUrl: ($('sync-server') || {}).value || '',
+    username: ($('sync-username') || {}).value || '',
+    password: ($('sync-password') || {}).value || '',
+    enabled: !!($('sync-enabled') || {}).checked,
+    autoSync: !!($('sync-auto') || {}).checked
+  });
+  const setSyncStatus = (msg, type) => {
+    const st = $('sync-status');
+    if (st) { st.textContent = msg; st.style.color = type === 'err' ? 'var(--red, #ef4444)' : (type === 'ok' ? 'var(--green, #22c55e)' : ''); }
+  };
+  // 测试连接
+  const syncTestBtn = $('sync-test');
+  if (syncTestBtn) syncTestBtn.addEventListener('click', async () => {
+    const cfg = syncCfgFromForm();
+    if (!cfg.serverUrl) { setSyncStatus('请先填写服务器地址', 'err'); return; }
+    setSyncStatus('正在测试连接…');
+    const r = await api.sync.test(cfg);
+    setSyncStatus(r.ok ? '✅ ' + r.message : '❌ ' + r.message, r.ok ? 'ok' : 'err');
+  });
+  // 登录
+  const syncLoginBtn = $('sync-login');
+  if (syncLoginBtn) syncLoginBtn.addEventListener('click', async () => {
+    const cfg = syncCfgFromForm();
+    if (!cfg.serverUrl || !cfg.username || !cfg.password) { setSyncStatus('请填写服务器地址、账号和密码', 'err'); return; }
+    setSyncStatus('正在登录…');
+    const r = await api.sync.login(cfg);
+    if (r.ok) {
+      setSyncStatus('✅ 登录成功，已保存 token', 'ok');
+      // 保存配置（含 token）
+      const full = collectSettings();
+      full.sync = Object.assign({}, full.sync || {}, { token: r.token, lastSync: new Date().toISOString() });
+      await api.settings.save(full);
+      applyConfig(full);
+      toast('✅ 云端登录成功');
+    } else {
+      setSyncStatus('❌ ' + r.message, 'err');
+    }
+  });
+  // 立即同步
+    // 渲染同步结果到面板
+  const renderSyncResult = (results) => {
+    const box = $('sync-result');
+    if (!box) return;
+    if (!results || !results.length) { box.style.display = 'none'; return; }
+    let html = '';
+    results.forEach((r) => {
+      const icon = r.ok ? '✓' : '✗';
+      const color = r.ok ? '#22c55e' : '#ef4444';
+      let detail = '';
+      if (r.ok) {
+        detail = '推送 ' + (r.pushed || 0) + ' 条，云端 ' + (r.records || 0) + ' 条' + (r.changed ? '（已更新本地）' : '');
+      } else {
+        detail = r.message || '失败';
+      }
+      html += '<div style="color:' + color + '">' + icon + ' ' + (r.label || r.collection) + '：' + detail + '</div>';
+    });
+    box.innerHTML = html;
+    box.style.display = 'block';
+  };
+  // 刷新各视图数据
+  const refreshAllViews = () => {
+    loadTodos(); loadUsers(); loadPapers();
+    if (typeof loadVocab === 'function') loadVocab();
+    if (typeof loadWenyan === 'function') loadWenyan();
+    if (typeof loadStats === 'function') loadStats();
+  };
+  // 立即同步
+  const syncNowBtn = $('sync-now');
+  if (syncNowBtn) syncNowBtn.addEventListener('click', async () => {
+    const cfg = syncCfgFromForm();
+    setSyncStatus('正在同步…');
+    const r = await api.sync.all(cfg);
+    if (r.ok) {
+      const okCount = r.results.filter((x) => x.ok).length;
+      setSyncStatus('✓ 同步完成：' + okCount + '/' + r.results.length + ' 个集合成功', 'ok');
+      toast('云端同步完成');
+      renderSyncResult(r.results);
+      refreshAllViews();
+    } else {
+      setSyncStatus('✗ ' + (r.message || '同步失败，请检查网络或服务器'), 'err');
+      toast('同步失败：' + (r.message || '未知错误'));
+      renderSyncResult(r.results);
+    }
+  });
+  // 检测差异
+  const syncDiffBtn = $('sync-diff');
+  if (syncDiffBtn) syncDiffBtn.addEventListener('click', async () => {
+    const cfg = syncCfgFromForm();
+    setSyncStatus('正在检测本地与云端差异…');
+    const r = await api.sync.diff(cfg);
+    if (r.ok) {
+      const box = $('sync-result');
+      if (box) {
+        let html = '';
+        r.results.forEach((x) => {
+          if (!x.ok) { html += '<div style="color:#ef4444">✗ ' + (x.label || x.collection) + '：' + (x.message || '检测失败') + '</div>'; return; }
+          const parts = [];
+          parts.push('本地 ' + x.localCount + ' 条');
+          parts.push('云端 ' + x.cloudCount + ' 条');
+          if (x.localNewer) parts.push('本地较新 ' + x.localNewer);
+          if (x.cloudNewer) parts.push('云端较新 ' + x.cloudNewer);
+          if (x.onlyLocal) parts.push('仅本地 ' + x.onlyLocal);
+          if (x.onlyCloud) parts.push('仅云端 ' + x.onlyCloud);
+          if (x.conflict) parts.push('同时修改 ' + x.conflict);
+          html += '<div>' + (x.label || x.collection) + '：' + parts.join('，') + '</div>';
+        });
+        box.innerHTML = html;
+        box.style.display = 'block';
+      }
+      setSyncStatus('✓ 差异检测完成', 'ok');
+    } else {
+      setSyncStatus('✗ ' + (r.message || '检测失败'), 'err');
+    }
+  });
+  // 从云端下载（覆盖本地）
+  const syncDownloadBtn = $('sync-download');
+  if (syncDownloadBtn) syncDownloadBtn.addEventListener('click', async () => {
+    const cfg = syncCfgFromForm();
+    if (!confirm('将从云端下载数据并覆盖本地文件，本地未同步的修改可能丢失。确定继续？')) return;
+    setSyncStatus('正在从云端下载…');
+    const r = await api.sync.download(cfg);
+    if (r.ok) {
+      const okCount = r.results.filter((x) => x.ok).length;
+      setSyncStatus('✓ 下载完成：' + okCount + '/' + r.results.length + ' 个集合', 'ok');
+      toast('已从云端下载数据');
+      renderSyncResult(r.results);
+      refreshAllViews();
+    } else {
+      setSyncStatus('✗ ' + (r.message || '下载失败'), 'err');
+      renderSyncResult(r.results);
+    }
+  });
+
+  // 设置页：左侧分类导航切换
+  document.querySelectorAll('.settings-nav-item').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.settings-nav-item').forEach((b) => b.classList.remove('active'));
+      document.querySelectorAll('.settings-pane').forEach((p) => p.classList.remove('active'));
+      btn.classList.add('active');
+      const pane = document.querySelector('.settings-pane[data-pane="' + btn.dataset.pane + '"]');
+      if (pane) pane.classList.add('active');
+    });
+  });
+
   $('set-theme').addEventListener('change', async () => {
     const cfg = collectSettings();
     document.documentElement.dataset.theme = cfg.theme;
     updateTitleBarOverlay();
     await api.settings.save(cfg);
+  });
+  const tvSel = $('set-todo-view');
+  if (tvSel) tvSel.addEventListener('change', async () => {
+    const cfg = collectSettings();
+    await api.settings.save(cfg);
+    loadTodos();
+    toast('✅ 待办展示方式已更新');
   });
   $('theme-toggle').addEventListener('click', async () => {
     const cfg = collectSettings();
@@ -1812,7 +2710,10 @@
     { name: 'MathJax', url: 'https://github.com/mathjax/MathJax', desc: '数学公式渲染' },
     { name: 'Chart.js', url: 'https://github.com/chartjs/Chart.js', desc: '分数预测图表' },
     { name: 'highlight.js', url: 'https://github.com/highlightjs/highlight.js', desc: '代码高亮（docsify 内置）' },
-    { name: 'adm-zip', url: 'https://github.com/cthackers/adm-zip', desc: '数据导出/导入的 ZIP 打包与解压' }
+    { name: 'adm-zip', url: 'https://github.com/cthackers/adm-zip', desc: '数据导出/导入的 ZIP 打包与解压' },
+    { name: 'docx', url: 'https://github.com/dolanmiu/docx', desc: 'Word 文档（.docx）导出（MIT 许可）' },
+    { name: 'Feather Icons', url: 'https://github.com/feathericons/feather', desc: '界面图标库（MIT 许可）' },
+    { name: 'ECDICT', url: 'https://github.com/skywind3000/ECDICT', desc: '简明英汉词典数据库（76 万词条，MIT 许可，允许商用）' }
   ];
   function renderCredits() {
     const list = $('credits-list');
@@ -1846,8 +2747,19 @@
 
   // ---------- 版本更新内容 ----------
   const VERSION_INFO = {
-    current: 'v1.9.1',
+    current: 'v1.10.0',
     history: [
+      { v: 'v1.10.0', date: '2026-09-03', items: [
+        '🎉 大版本更新：新增「积累」三件套 —— 生词本（英语单词 / 短语生义，多词性 + 例句，可关联词族，导出 Word 生词卷）、文言文（字 / 词生义与例句来源，导出 Word）、词语复习（艾宾浩斯遗忘曲线自动安排复习，中英 / 英中双向测验，拼写错误自动重置进度，可导出复习卷）',
+        '新增「试卷管理」：保存试卷本体与答题卡图片，AI 智能分析试卷，试卷与错题可互相关联',
+        '生成试卷升级：支持「按试卷（取其关联错题）/ 按错题组 / 手动勾选 / 按科目随机」四种组卷方式',
+        '新增「任务待办」：优先级、日期、循环任务（每天 / 每周 / 每两周 / 每月），支持日历视图；首页新增「今日待办」可直接勾选完成',
+        '新增「云端同步」：配套自建服务器后端（server/：账号注册登录、鉴权、加密、管理后台），同步生词本、文言文、待办、专注记录、错题库；电脑端本地为权威、云端备份中转，支持多端',
+        '本机 AI 模型重大改进：改为软件内置推理引擎（Transformers.js），无需 API Key、数据不出本机、支持视觉识别（不再依赖 Ollama 程序）',
+        '修复本机模型「安装失败」：模型下载切换至国内镜像（hf-mirror.com），无需科学上网即可下载；模型列表精简为镜像可稳定下载的 4 款（Qwen2.5 1.5B / Qwen2.5 0.5B / Phi-3 Mini / Moondream2 视觉），安装向导带进度条',
+        '错题管理增强：熟悉程度可批量设置，新增错题组分类管理（新建 / 移动 / 删除）',
+        '整体界面与交互优化：弹窗过渡、布局间距、生词本 / 待办等列表体验提升'
+      ] },
       { v: 'v1.9.1', date: '2026-08-17', items: [
         '本地 AI（Ollama）全面适配：新增「本地」提供商、无需 API Key；思考模型适配（content 为空时自动用思考结果兜底）；不支持工具调用的模型自动降级，不再报错',
         '确认弹窗可直接编辑 AI 生成的内容后再确认写入',
@@ -2011,6 +2923,24 @@
       openDlModal();
     });
   })();
+
+  // ---------- 清理缓存 / 旧安装包 ----------
+  $('cache-clean').addEventListener('click', async () => {
+    if (!(await askYesNo('清理缓存与旧版安装包？\n\n将删除：\n· 临时目录中的旧版安装包（学习助手-安装-*.exe 等）\n· 下载缓存（.blockmap / .nsis.7z / latest.yml）\n· Chromium 渲染缓存（Cache / GPU Cache 等）\n\n不影响你的知识库、设置与用户数据。'))) return;
+    const btn = $('cache-clean');
+    btn.disabled = true; btn.textContent = '🧹 清理中…';
+    const r = await api.cache.clean();
+    btn.disabled = false; btn.textContent = '🧹 清理缓存';
+    if (r.ok) {
+      const freed = fmtBytes(r.freed || 0);
+      const list = r.list || [];
+      const names = list.slice(0, 10).map((f) => '· ' + f).join('\n') + (list.length > 10 ? '\n… 等 ' + list.length + ' 项' : '');
+      await askYesNo('🧹 清理完成！\n\n已删除 ' + r.files + ' 个缓存文件\n释放空间：' + freed + '\n' + (names ? '\n' + names : '') + '\n\n（同时清理了 Chromium 渲染缓存，不影响知识库与设置）');
+      toast('✅ 已清理 ' + r.files + ' 个文件，释放 ' + freed, 5000);
+    } else {
+      toast('清理失败：' + (r.message || ''), 4000);
+    }
+  });
 
   // 启动时静默检查更新：有新版则弹窗提醒
   async function checkForUpdateSilent() {
@@ -2299,18 +3229,38 @@
   });
   // 向导内导入数据
   $('wiz-import').addEventListener('click', async () => {
-    if (!(await askYesNo('导入数据将覆盖同名文件并应用其设置。\n确定导入吗？'))) return;
-    const r = await api.data.import();
-    if (r.ok) {
-      $('wiz-import-status').textContent = '✅ 已导入 ' + r.written + ' 个文件';
-      const cfg = await api.settings.get();
-      applyConfig(cfg);
-      state.records = await api.records.list();
-      renderRecords();
-      toast('✅ 数据已导入');
-    } else if (!r.cancelled) {
-      $('wiz-import-status').textContent = '❌ ' + (r.message || '导入失败');
+    $('wiz-import-status').textContent = '⏳ 请选择要导入的数据包…';
+    const info = await api.data.inspect();
+    if (!info || !info.ok) {
+      if (info && !info.cancelled) $('wiz-import-status').textContent = '❌ ' + (info.message || '导入失败');
+      else $('wiz-import-status').textContent = '已取消，可点「下一步」跳过。';
+      return;
     }
+    // 选择解压目标文件夹（默认当前知识库所在目录的父目录）
+    const cur = String((state.config && state.config.workspacePath) || '').replace(/[\\/]+$/, '');
+    let targetDir = cur ? cur.replace(/[\\/][^\\/]*$/, '') : '';
+    if (!targetDir) {
+      const p = await api.settings.chooseWorkspace();
+      if (!p) { $('wiz-import-status').textContent = '已取消，可点「下一步」跳过。'; return; }
+      targetDir = p;
+    }
+    const names = (info.users || []).map((u) => u.name).join('、');
+    if (!(await askYesNo('确认导入？\n\n数据包：' + (info.file || '') + '\n用户：' + (info.users || []).length + ' 个（' + names + '）\n解压到：' + targetDir + '\n\n导入会解压到所选文件夹并应用其设置（不含 API Key）。'))) {
+      $('wiz-import-status').textContent = '已取消，可点「下一步」跳过。';
+      return;
+    }
+    $('wiz-import-status').textContent = '⏳ 正在导入…';
+    const r = await api.data.import({ buffer: info.buffer, mode: 'insert', selectedIds: (info.users || []).map((u) => u.id), targetDir });
+    if (!r || !r.ok) {
+      $('wiz-import-status').textContent = '❌ ' + ((r && r.message) || '导入失败');
+      return;
+    }
+    $('wiz-import-status').textContent = '✅ 已导入 ' + (r.imported || []).length + ' 个用户';
+    const cfg = await api.settings.get();
+    applyConfig(cfg);
+    state.records = await api.records.list();
+    renderRecords();
+    toast('✅ 数据已导入');
   });
   $('wiz-done').addEventListener('click', async () => {
     if (!$('wiz-agree').checked) {
@@ -2364,12 +3314,13 @@
   $('build-close').addEventListener('click', closeBuildModal);
   $('build-go').addEventListener('click', async () => {
     const subjects = $('build-subjects').value.split(/[,，、\s]+/).map((s) => s.trim()).filter(Boolean);
+    const essaySubjects = $('build-essay-subjects').value.split(/[,，、\s]+/).map((s) => s.trim()).filter(Boolean);
     const examPassword = $('build-exampwd').value.trim();
     const proc = $('build-proc');
     proc.innerHTML = '';
     if (!(await askYesNo('确认执行构建？\n将覆盖 index.html（同步设计/组卷密码），并创建缺失的科目档案与文档。'))) return;
     addProc(proc, '▶ 开始构建…', 'ok');
-    const r = await api.workspace.buildDocsify({ subjects, examPassword });
+    const r = await api.workspace.buildDocsify({ subjects, essaySubjects, examPassword });
     if (r.ok) {
       addProc(proc, '✅ 构建完成', 'ok');
       (r.overwritten || []).forEach((f) => addProc(proc, '⟳ 已更新 ' + f, 'ok'));
@@ -2507,54 +3458,147 @@
   });
   $('college-reload').addEventListener('click', loadCollege);
 
+  // ---------- 首页目标院校轮播 ----------
+  let collegeCarouselTimer = null;
+  let collegeCarouselIndex = 0;
+  function collegeSlideHTML(u) {
+    const img = u.image
+      ? '<img src="' + escapeHtml(imgSrc(u.image)) + '" alt="' + escapeHtml(u.name || '') + '" />'
+      : '<span class="cs-placeholder">🎓</span>';
+    const links = [];
+    if (u.official && u.official.url) links.push('<a href="' + escapeHtml(u.official.url) + '" target="_blank" rel="noopener">官网</a>');
+    if (u.admissions && u.admissions.url) links.push('<a href="' + escapeHtml(u.admissions.url) + '" target="_blank" rel="noopener">本科招生网</a>');
+    return '<div class="college-slide">' +
+      '<div class="college-slide-img">' + img + '</div>' +
+      '<div class="college-slide-info">' +
+      '<div class="college-slide-name">' + escapeHtml(u.name || '未命名院校') + '<span class="college-slide-prio">⭐ ' + (u.priority || '') + '</span></div>' +
+      (links.length ? '<div class="college-slide-links">' + links.join('') + '</div>' : '') +
+      '</div></div>';
+  }
+  function renderCollegeCarousel() {
+    const el = $('college-carousel');
+    if (!el) return;
+    const unis = (collegeData.universities || []).filter((u) => u && u.name);
+    if (!unis.length) {
+      el.innerHTML = '<div class="hint">暂无目标院校，去「目标院校」添加吧。</div>';
+      return;
+    }
+    const sorted = unis.slice().sort((a, b) => (a.priority || 99) - (b.priority || 99));
+    el.innerHTML =
+      '<div class="college-track">' + sorted.map(collegeSlideHTML).join('') + '</div>' +
+      (sorted.length > 1
+        ? '<button class="college-carousel-nav college-carousel-prev" title="上一个"><svg class="ic"><use href="#i-arrow-left"/></svg></button>' +
+          '<button class="college-carousel-nav college-carousel-next" title="下一个"><svg class="ic"><use href="#i-arrow-right"/></svg></button>' +
+          '<div class="college-carousel-dots">' + sorted.map((_, i) => '<button class="college-dot' + (i === 0 ? ' active' : '') + '" data-i="' + i + '"></button>').join('') + '</div>'
+        : '');
+    const track = el.querySelector('.college-track');
+    const dots = el.querySelectorAll('.college-dot');
+    function goTo(i) {
+      collegeCarouselIndex = ((i % sorted.length) + sorted.length) % sorted.length;
+      if (track) track.style.transform = 'translateX(-' + (collegeCarouselIndex * 100) + '%)';
+      dots.forEach((d) => d.classList.toggle('active', Number(d.dataset.i) === collegeCarouselIndex));
+    }
+    const prev = el.querySelector('.college-carousel-prev');
+    const next = el.querySelector('.college-carousel-next');
+    if (prev) prev.addEventListener('click', () => { goTo(collegeCarouselIndex - 1); restartCollegeCarousel(); });
+    if (next) next.addEventListener('click', () => { goTo(collegeCarouselIndex + 1); restartCollegeCarousel(); });
+    dots.forEach((d) => d.addEventListener('click', () => { goTo(Number(d.dataset.i)); restartCollegeCarousel(); }));
+    el._goTo = goTo;
+    restartCollegeCarousel();
+  }
+  function restartCollegeCarousel() {
+    if (collegeCarouselTimer) clearInterval(collegeCarouselTimer);
+    const el = $('college-carousel');
+    const unis = (collegeData.universities || []).filter((u) => u && u.name);
+    if (!el || unis.length <= 1) return;
+    collegeCarouselTimer = setInterval(() => {
+      if (el._goTo) el._goTo(collegeCarouselIndex + 1);
+    }, 4000);
+  }
+  async function loadCollegeCarousel() {
+    const r = await api.site.profile().catch(() => null);
+    if (r && r.ok) collegeData = r;
+    renderCollegeCarousel();
+  }
+  $('home-college-more').addEventListener('click', () => switchView('college'));
+
   // ---------- 错题统计 ----------
   async function loadStats() {
     const list = $('stats-list');
     if (!list) return;
     list.innerHTML = '<div class="hint">加载中…</div>';
-    const r = await api.site.stats();
-    if (!r.ok) { list.innerHTML = '<div class="hint">' + (r.message || '读取失败') + '</div>'; return; }
-    const subjects = r.subjects || [];
-    let errT = 0, essT = 0;
-    subjects.forEach((s) => { errT += s.errors.length; essT += s.essays.length; });
-    $('stats-summary').textContent = '共 ' + subjects.length + ' 科 · 错题 ' + errT + ' 道 · 作文 ' + essT + ' 篇';
+    // 错题数据来自统一错题库（含编号 / 熟悉程度 / 错题组 / 关联试卷）
+    const eb = await api.errorBank.list();
+    const errors = (eb && eb.ok && eb.errors) ? eb.errors : [];
+    // 记录全局错题顺序，供详情切换使用
+    state.statsOrder = errors.map((e) => e.number);
+    // 作文与日期来自 site.stats
+    const st = await api.site.stats();
+    const subjects = (st && st.ok && st.subjects) ? st.subjects : [];
+    const essayByFile = {};
+    subjects.forEach((s) => { essayByFile[s.file] = { essays: s.essays, date: s.date }; });
+    // 按科目分组错题
+    const bySubject = {};
+    errors.forEach((e) => { (bySubject[e.subject] = bySubject[e.subject] || []).push(e); });
+    const allSubjects = Array.from(new Set([...Object.keys(bySubject), ...subjects.map((s) => s.subject)]));
+    let errT = errors.length, essT = 0;
+    subjects.forEach((s) => { essT += s.essays.length; });
+    $('stats-summary').textContent = '共 ' + allSubjects.length + ' 科 · 错题 ' + errT + ' 道 · 作文 ' + essT + ' 篇';
     list.innerHTML = '';
-    subjects.forEach((s) => {
+    allSubjects.forEach((subject) => {
+      const file = subject + '.md';
+      const subjErrors = bySubject[subject] || [];
+      const essays = (essayByFile[file] && essayByFile[file].essays) || [];
+      const date = (essayByFile[file] && essayByFile[file].date) || '';
       const card = document.createElement('div');
       card.className = 'stat-subject';
-      const errs = s.errors.map((e) => {
-        const key = s.file + '#' + e.n;
-        return '<div class="ss-item-row"><input type="checkbox" class="ss-cb" data-key="' + key + '" ' +
-          (state.examSel.has(key) ? 'checked' : '') + ' title="加入组卷" /><span class="ss-item" data-key="' + key + '">错题 ' + e.n + '：' + escapeHtml(e.title) + '</span>' +
-          '<button type="button" class="ss-del" data-key="' + key + '" title="删除该错题">🗑</button></div>';
+      const errs = subjErrors.map((e) => {
+        const key = e.number;
+        const fam = FAMILIARITY_LABEL[e.familiarity] || '';
+        const grp = e.group ? '<span class="ss-group-tag" title="错题组">' + escapeHtml(e.group) + '</span>' : '';
+        const papers = (Array.isArray(e.linkedPapers) && e.linkedPapers.length)
+          ? e.linkedPapers.map((p) => '<span class="ss-paper-tag" title="关联试卷：' + escapeHtml(p.name) + '">📄 ' + escapeHtml(p.name) + '</span>').join('')
+          : '';
+        // 每行：错题 + 中间信息（关联试卷 / 错题组）在同一行对齐
+        return '<div class="ss-row">' +
+          '<div class="ss-item-row"><input type="checkbox" class="ss-cb" data-key="' + key + '" ' +
+          (state.examSel.has(key) ? 'checked' : '') + ' title="加入组卷" /><span class="ss-item" data-key="' + key + '">' + fam + ' 错题 ' + e.n + '：' + escapeHtml(e.type) + '</span>' +
+          '<button type="button" class="ss-del" data-key="' + key + '" title="删除该错题">🗑</button></div>' +
+          '<div class="ss-meta-row">' + grp + papers + '</div>' +
+          '</div>';
       }).join('') || '<div class="ss-empty">暂无错题</div>';
-      const essays = s.essays.map((e) => '<div class="ss-item" data-essay="' + encodeURIComponent(e.title) + '">' + (e.n ? '作文 ' + e.n + '：' : '') + escapeHtml(e.title) + '</div>').join('') || '<div class="ss-empty">暂无作文</div>';
-      card.innerHTML = '<div class="ss-head"><span>' + escapeHtml(s.subject) + '</span><span class="ss-count">错题 ' + s.errors.length + ' · 作文 ' + s.essays.length + (s.date ? ' · 更新 ' + escapeHtml(s.date) : '') + '</span></div>' +
+      // 作文列：仅当该科目存在作文时显示
+      const hasEssays = essays.length > 0;
+      const essaysHtml = hasEssays
+        ? essays.map((e) => '<div class="ss-item" data-essay="' + encodeURIComponent(e.title) + '">' + (e.n ? '作文 ' + e.n + '：' : '') + escapeHtml(e.title) + '</div>').join('')
+        : '';
+      const essayCol = hasEssays
+        ? '<div class="ss-col"><div class="ss-col-title">作文</div>' + essaysHtml + '</div>'
+        : '';
+      card.innerHTML = '<div class="ss-head"><span>' + escapeHtml(subject) + '</span><span class="ss-count">错题 ' + subjErrors.length + (hasEssays ? ' · 作文 ' + essays.length : '') + (date ? ' · 更新 ' + escapeHtml(date) : '') + '</span></div>' +
         '<div class="ss-body"><div class="ss-col"><div class="ss-col-title">错题（勾选加入组卷）</div>' + errs + '</div>' +
-        '<div class="ss-col"><div class="ss-col-title">作文</div>' + essays + '</div></div>';
+        essayCol + '</div>';
       card.querySelectorAll('.ss-cb').forEach((cb) => {
         cb.addEventListener('change', async () => {
-          const m = cb.dataset.key.match(/^(.*)#(\d+)$/);
-          await toggleExamSel(cb.dataset.key, m[1], Number(m[2]), cb.checked);
+          await toggleExamSel(cb.dataset.key, cb.checked);
         });
       });
       card.querySelectorAll('.ss-item[data-key]').forEach((it) => {
         it.addEventListener('click', () => {
-          const m = it.dataset.key.match(/^(.*)#(\d+)$/);
-          openDetail(m[1], Number(m[2]));
+          const key = it.dataset.key;
+          openDetail(key, state.statsOrder, state.statsOrder.indexOf(key));
         });
       });
       card.querySelectorAll('.ss-del').forEach((btn) => {
         btn.addEventListener('click', async (ev) => {
           ev.stopPropagation();
-          const m = btn.dataset.key.match(/^(.*)#(\d+)$/);
-          if (!m) return;
-          const file = m[1], n = Number(m[2]);
-          if (!(await askYesNo('确定要删除错题 ' + n + '吗？\n将从「' + file + '」中删除该条目。'))) return;
-          if (!(await askYesNo('再次确认：确定永久删除错题 ' + n + '？\n此操作不可恢复！'))) return;
-          const r = await api.site.del(file, n);
+          const number = btn.dataset.key;
+          if (!number) return;
+          if (!(await askYesNo('确定要删除错题 ' + number + ' 吗？\n将从对应科目档案中删除该条目。'))) return;
+          if (!(await askYesNo('再次确认：确定永久删除错题 ' + number + '？\n此操作不可恢复！'))) return;
+          const r = await api.errorBank.del(number);
           if (r.ok) {
-            toast('✅ 已删除错题 ' + n, 3000);
+            toast('✅ 已删除错题 ' + number, 3000);
             loadStats();
             refreshTree();
             api.site.refreshStats().catch(() => {});
@@ -2565,13 +3609,138 @@
         });
       });
       card.querySelectorAll('.ss-item[data-essay]').forEach((it) => {
-        it.addEventListener('click', () => openSectionDetail(s.file, decodeURIComponent(it.dataset.essay)));
+        it.addEventListener('click', () => openSectionDetail(file, decodeURIComponent(it.dataset.essay)));
       });
       list.appendChild(card);
     });
     updateExamBar();
   }
   $('stats-refresh').addEventListener('click', loadStats);
+
+  // ---------- 批量设置熟悉程度 ----------
+  function selectedNumbers() {
+    return Array.from(state.examSel.keys());
+  }
+  $('stats-fam').addEventListener('click', () => {
+    const bar = $('stats-fam-bar');
+    if (!bar) return;
+    bar.classList.toggle('hidden');
+    $('stats-fam-count').textContent = selectedNumbers().length;
+  });
+  $('stats-fam-cancel').addEventListener('click', () => $('stats-fam-bar').classList.add('hidden'));
+  $('stats-fam-apply').addEventListener('click', async () => {
+    const nums = selectedNumbers();
+    if (!nums.length) { toast('请先勾选错题'); return; }
+    const fam = $('stats-fam-select').value;
+    const r = await api.errorBank.setFamiliarity(nums, fam);
+    if (r.ok) {
+      toast('✅ 已更新 ' + r.updated + ' 道错题的熟悉程度', 3000);
+      $('stats-fam-bar').classList.add('hidden');
+      loadStats();
+    } else toast('操作失败：' + (r.message || ''), 4000);
+  });
+
+  // ---------- 错题组管理 ----------
+  async function loadStatsGroups() {
+    const sel = $('stats-group-select');
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '';
+    try {
+      const r = await api.errorBank.groups();
+      if (r && r.ok && Array.isArray(r.groups)) {
+        r.groups.forEach((g) => {
+          const o = document.createElement('option');
+          o.value = g.name;
+          o.textContent = g.name;
+          sel.appendChild(o);
+        });
+      }
+    } catch (e) { /* 忽略 */ }
+    if (cur) sel.value = cur;
+    else if (Array.from(sel.options).some((o) => o.value === '默认')) sel.value = '默认';
+  }
+  $('stats-group').addEventListener('click', () => {
+    const bar = $('stats-group-bar');
+    if (!bar) return;
+    bar.classList.toggle('hidden');
+    if (!bar.classList.contains('hidden')) loadStatsGroups();
+  });
+  $('stats-group-cancel').addEventListener('click', () => $('stats-group-bar').classList.add('hidden'));
+  $('stats-group-move').addEventListener('click', async () => {
+    const nums = selectedNumbers();
+    if (!nums.length) { toast('请先勾选错题'); return; }
+    const grp = $('stats-group-select').value;
+    const r = await api.errorBank.moveGroup(nums, grp);
+    if (r.ok) {
+      toast('✅ 已移动 ' + r.moved + ' 道错题到「' + (grp || '默认') + '」', 3000);
+      loadStats();
+    } else toast('操作失败：' + (r.message || ''), 4000);
+  });
+  $('stats-group-new').addEventListener('click', async () => {
+    const name = await askInput({ title: '新建错题组', desc: '请输入新错题组的名称。', label: '错题组名称', placeholder: '例如：函数与导数' });
+    if (!name || !name.trim()) return;
+    const r = await api.errorBank.addGroup(name.trim());
+    if (r.ok) {
+      toast('✅ 已创建错题组「' + name.trim() + '」', 3000);
+      loadStatsGroups();
+      loadEntryGroups();
+    } else toast('创建失败：' + (r.message || ''), 4000);
+  });
+  $('stats-group-del').addEventListener('click', async () => {
+    const grp = $('stats-group-select').value;
+    if (!grp) { toast('请先选择要删除的错题组'); return; }
+    if (grp === '默认') { toast('「默认」为内置错题组，不可删除'); return; }
+    const r = await api.errorBank.groups();
+    const groups = (r && r.ok && r.groups) || [];
+    const g = groups.find((x) => x.name === grp);
+    if (!g) { toast('错题组不存在'); return; }
+    // 填充转移目标下拉（排除自身）
+    const moveSel = $('group-del-move-select');
+    moveSel.innerHTML = '';
+    groups.forEach((x) => {
+      if (x.name === grp) return;
+      const o = document.createElement('option');
+      o.value = x.name;
+      o.textContent = x.name;
+      moveSel.appendChild(o);
+    });
+    // 默认选中「默认」组
+    if (Array.from(moveSel.options).some((o) => o.value === '默认')) moveSel.value = '默认';
+    $('group-del-desc').textContent = '删除错题组「' + grp + '」后，组内错题如何处理？';
+    $('group-del-modal').classList.remove('hidden');
+    // 记录待删除的组 id，供确定按钮使用
+    $('group-del-modal').dataset.groupId = g.id;
+    $('group-del-modal').dataset.groupName = grp;
+  });
+  $('group-del-cancel').addEventListener('click', () => $('group-del-modal').classList.add('hidden'));
+  $('group-del-close').addEventListener('click', () => $('group-del-modal').classList.add('hidden'));
+  $('group-del-ok').addEventListener('click', async () => {
+    const modal = $('group-del-modal');
+    const id = modal.dataset.groupId;
+    const name = modal.dataset.groupName;
+    modal.classList.add('hidden');
+    if (!id) return;
+    const mode = document.querySelector('input[name="gd-mode"]:checked').value;
+    if (mode === 'delete') {
+      // 全部直接删除：二次确认
+      if (!(await askYesNo('确定要删除错题组「' + name + '」并【一并删除】组内所有错题吗？\n\n此操作不可恢复，错题档案与附件将全部删除！'))) return;
+      if (!(await askYesNo('再次确认：确定永久删除错题组「' + name + '」及其全部错题？\n此操作不可恢复！'))) return;
+      const dr = await api.errorBank.deleteGroup(id, { deleteErrors: true });
+      if (dr.ok) {
+        toast('✅ 已删除错题组「' + name + '」及 ' + (dr.deleted || 0) + ' 道错题', 3000);
+      } else toast('删除失败：' + (dr.message || ''), 4000);
+    } else {
+      const moveTo = $('group-del-move-select').value;
+      const dr = await api.errorBank.deleteGroup(id, { moveTo });
+      if (dr.ok) {
+        toast('✅ 已删除错题组「' + name + '」' + (moveTo ? '，错题已转移到「' + moveTo + '」' : '，错题已转移到「默认」组'), 3000);
+      } else toast('删除失败：' + (dr.message || ''), 4000);
+    }
+    loadStatsGroups();
+    loadEntryGroups();
+    loadStats();
+  });
 
   // ---------- 错题全文搜索（含题目） ----------
   let statsSearchTimer = null;
@@ -2584,18 +3753,19 @@
     list.classList.add('hidden');
     results.classList.remove('hidden');
     results.innerHTML = '<div class="hint">搜索中…</div>';
-    api.site.search(q).then((r) => {
+    api.errorBank.search(q).then((r) => {
       if (!r.ok) { results.innerHTML = '<div class="hint">搜索失败：' + escapeHtml(r.message || '') + '</div>'; return; }
       const ms = r.matches || [];
       if (!ms.length) { results.innerHTML = '<div class="hint">未找到包含「' + escapeHtml(q) + '」的错题</div>'; return; }
       const total = ms.length > 100 ? '（仅显示前 100 条）' : '';
       results.innerHTML = '<div class="hint">找到 ' + ms.length + ' 条匹配' + total + '</div>';
+      const searchOrder = ms.map((m) => m.number);
       ms.slice(0, 100).forEach((m) => {
         const row = document.createElement('div');
         row.className = 'search-hit';
-        row.innerHTML = '<div class="sh-line"><span class="sh-tag">' + escapeHtml(m.subject) + ' · 错题 ' + m.n + '</span><span class="sh-title">' + escapeHtml(m.title) + '</span></div>' +
+        row.innerHTML = '<div class="sh-line"><span class="sh-tag">' + escapeHtml(m.subject) + ' · 错题 ' + m.n + '</span><span class="sh-title">' + escapeHtml(m.type) + '</span></div>' +
           (m.snippet ? '<div class="sh-snippet">' + escapeHtml(m.snippet) + '</div>' : '');
-        row.addEventListener('click', () => openDetail(m.file, m.n));
+        row.addEventListener('click', () => openDetail(m.number, searchOrder, searchOrder.indexOf(m.number)));
         results.appendChild(row);
       });
     });
@@ -2654,27 +3824,58 @@
   function syncExamCheckboxes() {
     document.querySelectorAll('.ss-cb').forEach((cb) => { cb.checked = state.examSel.has(cb.dataset.key); });
   }
-  async function toggleExamSel(key, file, n, checked) {
+  async function toggleExamSel(key, checked) {
     if (!checked) { state.examSel.delete(key); updateExamBar(); return; }
-    const r = await api.workspace.read(file);
-    if (!r.ok) { toast('读取失败：' + r.message, 3000); return; }
-    const sec = extractErrorSection(r.content, n);
-    if (!sec) { toast('未找到错题 ' + n, 3000); return; }
-    state.examSel.set(key, { file: file, n: n, title: sec.title, md: sec.md });
+    const r = await api.errorBank.get(key);
+    if (!r.ok) { toast('读取失败：' + (r.message || ''), 3000); return; }
+    const sec = r.content || '';
+    state.examSel.set(key, { number: key, subject: r.error.subject || '', title: r.error.type || '', md: sec });
     updateExamBar();
   }
-  async function openDetail(file, n) {
-    const r = await api.workspace.read(file);
-    if (!r.ok) { toast('读取失败：' + r.message, 3000); return; }
-    const sec = extractErrorSection(r.content, n);
-    $('detail-file').textContent = file + ' · 错题 ' + n;
-    if (sec) renderMd($('detail-body'), sec.md);
+  async function openDetail(number, list, idx) {
+    const r = await api.errorBank.get(number);
+    if (!r.ok) { toast('读取失败：' + (r.message || ''), 3000); return; }
+    const e = r.error;
+    $('detail-file').textContent = e.subject + ' · 错题 ' + e.n + ' · ' + number;
+    if (r.content) renderMd($('detail-body'), r.content);
     else $('detail-body').innerHTML = '<div class="hint">未找到该题内容</div>';
-    state.detailKey = file + '#' + n;
-    state.detailFile = file;
-    state.detailN = n;
+    state.detailKey = number;
+    state.detailFile = e.file;
+    state.detailN = e.n;
+    // 记录切换上下文（列表 + 当前位置）
+    state.detailList = Array.isArray(list) ? list : [];
+    state.detailIdx = (typeof idx === 'number' && idx >= 0) ? idx : -1;
+    // 显示附件
+    renderDetailAttachments(number);
     $('detail-sel').checked = state.examSel.has(state.detailKey);
     $('detail-modal').classList.remove('hidden');
+  }
+  // 渲染错题详情附件
+  async function renderDetailAttachments(number) {
+    const wrap = $('detail-attachments');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    const r = await api.errorBank.listAttachments(number).catch(() => null);
+    const atts = (r && r.ok && r.attachments) ? r.attachments : [];
+    if (!atts.length) return;
+    for (const a of atts) {
+      const ar = await api.errorBank.readAttachment(number, a.name).catch(() => null);
+      if (!ar || !ar.ok) continue;
+      const item = document.createElement('div');
+      item.className = 'da-item';
+      item.innerHTML = '<img src="' + ar.dataUrl + '" /><div class="da-name">' + escapeHtml(a.name) + '</div>';
+      wrap.appendChild(item);
+    }
+  }
+  // 详情切换：上一道 / 下一道
+  async function detailNav(dir) {
+    const list = state.detailList;
+    if (!list.length || state.detailIdx < 0) { toast('当前无切换列表'); return; }
+    const ni = state.detailIdx + dir;
+    if (ni < 0 || ni >= list.length) { toast(dir < 0 ? '已是第一道' : '已是最后一道'); return; }
+    const target = list[ni];
+    const num = typeof target === 'string' ? target : target.number;
+    await openDetail(num, list, ni);
   }
   // ---------- 组卷：拆分题干/答案/解析/同类题 ----------
   function splitSection(md) {
@@ -2701,13 +3902,153 @@
   function stripSource(md) {
     return String(md || '').split('\n').filter((l) => !/录入时间|录入日期|来源[：:]|^\s*-\s*\*\*来源\*\*|^\s*-\s*来源/.test(l)).join('\n').trim();
   }
-  function openExamModal() {
-    if (!state.examSel.size) { toast('请先勾选错题'); return; }
-    const subj = Array.from(new Set(Array.from(state.examSel.values()).map((q) => q.file.replace(/\.md$/, ''))));
+  // ===== 新建试卷（4 种组卷方式） =====
+  let examAllErrors = []; // 错题库全量（含元数据），供各方式筛选
+  let examMethod = 'paper'; // 当前方式
+  function examFamSelected() {
+    return Array.from(document.querySelectorAll('.exam-fam-cb:checked')).map((cb) => cb.value);
+  }
+  function examSetCount() {
+    const c = $('exam-count');
+    if (c) c.textContent = state.examSel.size;
+  }
+  function examRenderPicked() {
+    const list = $('exam-picked-list');
+    if (!list) return;
+    examSetCount();
+    if (!state.examSel.size) {
+      list.innerHTML = '<div class="hint">尚未载入错题，请选择上方一种方式。</div>';
+      return;
+    }
+    list.innerHTML = Array.from(state.examSel.values()).map((q) =>
+      '<div class="exam-picked-item" data-key="' + escapeHtml(q.number) + '">' +
+      '<span class="ep-title">' + escapeHtml(q.subject || '') + ' · 错题 ' + (q.n || '') + '：' + escapeHtml(q.title || '') + '</span>' +
+      '<button type="button" class="btn-mini warn" data-remove="1">移除</button></div>'
+    ).join('');
+    list.querySelectorAll('.exam-picked-item').forEach((item) => {
+      item.querySelector('[data-remove]').addEventListener('click', () => {
+        state.examSel.delete(item.dataset.key);
+        examRenderPicked();
+        syncExamCheckboxes();
+        updateExamBar();
+      });
+    });
+  }
+  // 把一批错题编号加入待选（去重）
+  async function examAddNumbers(numbers) {
+    let added = 0;
+    for (const num of numbers) {
+      if (state.examSel.has(num)) continue;
+      const r = await api.errorBank.get(num);
+      if (!r.ok) continue;
+      const sec = r.content || '';
+      state.examSel.set(num, { number: num, subject: r.error.subject || '', title: r.error.type || '', n: r.error.n || 0, md: sec });
+      added++;
+    }
+    examRenderPicked();
+    syncExamCheckboxes();
+    updateExamBar();
+    return added;
+  }
+  async function examLoadPaper() {
+    const pid = $('exam-paper-select').value;
+    if (!pid) { toast('请先选择试卷'); return; }
+    const p = papersData.find((x) => x.id === pid);
+    if (!p) { toast('试卷不存在'); return; }
+    const linked = Array.isArray(p.linkedErrors) ? p.linkedErrors : [];
+    if (!linked.length) { toast('该试卷暂无关联错题'); return; }
+    const nums = linked.map((e) => e.number).filter(Boolean);
+    const added = await examAddNumbers(nums);
+    toast('✅ 已载入 ' + added + ' 道关联错题', 3000);
+  }
+  async function examLoadGroup() {
+    const grp = $('exam-group-select').value;
+    const fams = examFamSelected();
+    const nums = examAllErrors
+      .filter((e) => (!grp || e.group === grp) && (!fams.length || fams.indexOf(e.familiarity) !== -1))
+      .map((e) => e.number);
+    if (!nums.length) { toast('没有符合条件的错题'); return; }
+    const added = await examAddNumbers(nums);
+    toast('✅ 已载入 ' + added + ' 道错题', 3000);
+  }
+  function examRenderManual() {
+    const list = $('exam-manual-list');
+    if (!list) return;
+    if (!examAllErrors.length) { list.innerHTML = '<div class="hint">暂无错题</div>'; return; }
+    list.innerHTML = examAllErrors.map((e) =>
+      '<div class="exam-manual-item" data-key="' + escapeHtml(e.number) + '">' +
+      '<input type="checkbox" class="em-cb" data-key="' + escapeHtml(e.number) + '" ' + (state.examSel.has(e.number) ? 'checked' : '') + ' />' +
+      '<span class="em-title">' + escapeHtml(e.subject) + ' · 错题 ' + (e.n || '') + '：' + escapeHtml(e.type || '') + '</span>' +
+      '<span class="em-meta">' + (FAMILIARITY_LABEL[e.familiarity] || '') + (e.group ? ' · ' + escapeHtml(e.group) : '') + '</span></div>'
+    ).join('');
+    list.querySelectorAll('.em-cb').forEach((cb) => {
+      cb.addEventListener('change', async () => {
+        await toggleExamSel(cb.dataset.key, cb.checked);
+        examRenderManual();
+        examRenderPicked();
+      });
+    });
+  }
+  async function examLoadRandom() {
+    const subj = $('exam-random-subject').value;
+    const fams = examFamSelected();
+    const count = parseInt($('exam-random-count').value, 10) || 10;
+    let pool = examAllErrors.filter((e) => (!subj || e.subject === subj) && (!fams.length || fams.indexOf(e.familiarity) !== -1));
+    if (!pool.length) { toast('没有符合条件的错题'); return; }
+    // 打乱后取前 count 道
+    for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+    pool = pool.slice(0, count);
+    const added = await examAddNumbers(pool.map((e) => e.number));
+    toast('✅ 已随机抽取 ' + added + ' 道错题', 3000);
+  }
+  function examSwitchMethod(method) {
+    examMethod = method;
+    document.querySelectorAll('.exam-method-tab').forEach((t) => t.classList.toggle('active', t.dataset.method === method));
+    document.querySelectorAll('.exam-method-pane').forEach((p) => p.classList.toggle('hidden', p.dataset.method !== method));
+  }
+  async function openExamModal() {
+    // 载入错题库全量（供各方式筛选）
+    const eb = await api.errorBank.list();
+    examAllErrors = (eb && eb.ok && eb.errors) ? eb.errors : [];
+    // 方式①：试卷下拉
+    const paperSel = $('exam-paper-select');
+    if (paperSel) {
+      const cur = paperSel.value;
+      paperSel.innerHTML = papersData.length
+        ? papersData.map((p) => '<option value="' + p.id + '">' + escapeHtml(p.name) + (p.subject ? '（' + escapeHtml(p.subject) + '）' : '') + '</option>').join('')
+        : '<option value="">（暂无试卷）</option>';
+      if (cur) paperSel.value = cur;
+    }
+    // 方式②：错题组下拉
+    const grpSel = $('exam-group-select');
+    if (grpSel) {
+      const cur = grpSel.value;
+      grpSel.innerHTML = '<option value="">全部错题组</option>';
+      try {
+        const gr = await api.errorBank.groups();
+        if (gr && gr.ok && Array.isArray(gr.groups)) gr.groups.forEach((g) => {
+          const o = document.createElement('option'); o.value = g.name; o.textContent = g.name; grpSel.appendChild(o);
+        });
+      } catch (e) { /* 忽略 */ }
+      if (cur) grpSel.value = cur;
+    }
+    // 方式④：科目下拉
+    const subjSel = $('exam-random-subject');
+    if (subjSel) {
+      const cur = subjSel.value;
+      const subs = Array.from(new Set(examAllErrors.map((e) => e.subject).filter(Boolean)));
+      subjSel.innerHTML = '<option value="">全部科目</option>' + subs.map((s) => '<option value="' + escapeHtml(s) + '">' + escapeHtml(s) + '</option>').join('');
+      if (cur) subjSel.value = cur;
+    }
+    // 方式③：手动列表
+    examRenderManual();
+    // 默认试卷名称
+    const subj = Array.from(new Set(Array.from(state.examSel.values()).map((q) => q.subject || ''))).filter(Boolean);
     const d = new Date();
     const ds = d.getFullYear() + '.' + (d.getMonth() + 1) + '.' + d.getDate();
     $('exam-name').value = subj.join('+') + '错题组卷 ' + ds;
-    $('exam-count').textContent = state.examSel.size;
+    examRenderPicked();
+    examSwitchMethod('paper');
     $('exam-modal').classList.remove('hidden');
   }
   function closeExamModal() { $('exam-modal').classList.add('hidden'); }
@@ -2769,20 +4110,36 @@
   }
   $('detail-close').addEventListener('click', () => $('detail-modal').classList.add('hidden'));
   $('detail-sel').addEventListener('change', async (e) => {
-    await toggleExamSel(state.detailKey, state.detailFile, state.detailN, e.target.checked);
+    await toggleExamSel(state.detailKey, e.target.checked);
     syncExamCheckboxes();
     updateExamBar();
   });
+  // 详情切换：上一道 / 下一道
+  $('detail-prev').addEventListener('click', () => detailNav(-1));
+  $('detail-prev2').addEventListener('click', () => detailNav(-1));
+  $('detail-next2').addEventListener('click', () => detailNav(1));
   $('detail-gen').addEventListener('click', openExamModal);
   $('detail-edit').addEventListener('click', () => { $('detail-modal').classList.add('hidden'); openInEditor(state.detailFile); switchView('archive'); });
   $('exam-gen').addEventListener('click', openExamModal);
   $('exam-modal-close').addEventListener('click', closeExamModal);
   $('exam-modal-cancel').addEventListener('click', closeExamModal);
   $('exam-modal-go').addEventListener('click', doGenExam);
+  // 方式切换
+  document.querySelectorAll('.exam-method-tab').forEach((t) => {
+    t.addEventListener('click', () => examSwitchMethod(t.dataset.method));
+  });
+  // 方式①：按试卷
+  $('exam-paper-load').addEventListener('click', examLoadPaper);
+  // 方式②：按错题组
+  $('exam-group-load').addEventListener('click', examLoadGroup);
+  // 方式④：按科目随机
+  $('exam-random-load').addEventListener('click', examLoadRandom);
   $('exam-clear').addEventListener('click', () => {
     state.examSel.clear();
     syncExamCheckboxes();
     updateExamBar();
+    examRenderPicked();
+    examRenderManual();
     toast('已清空组卷选择');
   });
 
@@ -2819,12 +4176,1476 @@
     } catch (e) { /* ignore */ }
   }
 
+  // ---------- 任务待办 ----------
+  const PRIORITY_LABEL = { high: '🔴 高', normal: '🟡 中', low: '🟢 低' };
+  const RECUR_LABEL = { daily: '每天', weekly: '每周', biweekly: '每两周', monthly: '每月' };
+  function todoItemHTML(t) {
+    const due = t.due ? '<span class="todo-due">📅 ' + escapeHtml(t.due) + '</span>' : '';
+    const prio = '<span class="todo-prio prio-' + escapeHtml(t.priority) + '">' + (PRIORITY_LABEL[t.priority] || '🟡 中') + '</span>';
+    const rec = t.recurring ? '<span class="todo-rec" title="循环任务：' + (RECUR_LABEL[t.recurring] || t.recurring) + '">🔁 ' + (RECUR_LABEL[t.recurring] || t.recurring) + '</span>' : '';
+    return '<div class="todo-item' + (t.done ? ' done' : '') + '" data-id="' + t.id + '">' +
+      '<input type="checkbox" class="todo-cb" data-id="' + t.id + '" ' + (t.done ? 'checked' : '') + ' />' +
+      '<span class="todo-text">' + escapeHtml(t.text) + '</span>' +
+      rec + prio + due +
+      '<button class="todo-del" data-id="' + t.id + '" title="删除">🗑</button>' +
+      '</div>';
+  }
+  async function loadTodos() {
+    const r = await api.todos.list().catch(() => null);
+    if (!r || !r.ok) return;
+    const todos = r.todos || [];
+    const list = $('todo-list');
+    const cal = $('todo-calendar');
+    const viewMode = (state.config && state.config.todoView) || 'list';
+    if (list) list.classList.toggle('hidden', viewMode === 'calendar');
+    if (cal) cal.classList.toggle('hidden', viewMode !== 'calendar');
+    if (viewMode === 'calendar') {
+      renderTodoCalendar(todos);
+    } else if (list) {
+      list.innerHTML = todos.length ? todos.map(todoItemHTML).join('') : '<div class="hint">暂无待办。</div>';
+      list.querySelectorAll('.todo-cb').forEach((cb) => cb.addEventListener('change', () => toggleTodo(cb.dataset.id)));
+      list.querySelectorAll('.todo-del').forEach((btn) => btn.addEventListener('click', async () => {
+        if (!(await askYesNo('确定删除该待办？'))) return;
+        const dr = await api.todos.del(btn.dataset.id);
+        if (dr.ok) { toast('已删除'); loadTodos(); } else toast(dr.message || '删除失败', 3000);
+      }));
+    }
+    const done = todos.filter((t) => t.done).length;
+    const sum = $('todo-summary'); if (sum) sum.textContent = '共 ' + todos.length + ' 项 · 已完成 ' + done + ' 项';
+    // 首页待办（未完成项，最多显示 8 条）
+    const homeList = $('home-todos-list');
+    if (homeList) {
+      const pending = todos.filter((t) => !t.done);
+      if (!pending.length) {
+        homeList.innerHTML = '<div class="hint">🎉 太棒了，没有未完成的待办！</div>';
+      } else {
+        homeList.innerHTML = pending.slice(0, 8).map(todoItemHTML).join('') +
+          (pending.length > 8 ? '<div class="hint">…还有 ' + (pending.length - 8) + ' 项，去「任务待办」查看</div>' : '');
+        homeList.querySelectorAll('.todo-cb').forEach((cb) => cb.addEventListener('change', () => toggleTodo(cb.dataset.id)));
+      }
+    }
+  }
+  // ---------- 待办日历视图 ----------
+  let todoCalDate = new Date();
+  todoCalDate.setDate(1);
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+  function fmtDateKey(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+  function renderTodoCalendar(todos) {
+    const grid = $('cal-grid');
+    const title = $('cal-title');
+    if (!grid || !title) return;
+    const y = todoCalDate.getFullYear(), m = todoCalDate.getMonth();
+    title.textContent = y + ' 年 ' + (m + 1) + ' 月';
+    const byDate = {};
+    todos.forEach((t) => { if (t.due) { (byDate[t.due] = byDate[t.due] || []).push(t); } });
+    const first = new Date(y, m, 1);
+    const startDow = (first.getDay() + 6) % 7; // 周一为一周开始
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+    const todayKey = fmtDateKey(new Date());
+    const dows = ['一', '二', '三', '四', '五', '六', '日'];
+    let html = dows.map((d, i) => '<div class="cal-dow' + (i >= 5 ? ' weekend' : '') + '">' + d + '</div>').join('');
+    // 上月补位
+    const prevDays = new Date(y, m, 0).getDate();
+    for (let i = startDow - 1; i >= 0; i--) {
+      const d = new Date(y, m - 1, prevDays - i);
+      html += '<div class="cal-cell other"><div class="cal-cell-num">' + d.getDate() + '</div></div>';
+    }
+    for (let day = 1; day <= daysInMonth; day++) {
+      const d = new Date(y, m, day);
+      const key = fmtDateKey(d);
+      const dayTodos = byDate[key] || [];
+      const isToday = key === todayKey;
+      const dow = (d.getDay() + 6) % 7;
+      html += '<div class="cal-cell' + (isToday ? ' today' : '') + '">' +
+        '<div class="cal-cell-num">' + day + '</div>' +
+        '<div class="cal-cell-todos">' +
+        (dayTodos.length
+          ? dayTodos.map((t) => '<button class="cal-todo' + (t.done ? ' done' : '') + ' prio-' + escapeHtml(t.priority) + '" data-id="' + t.id + '" title="' + escapeHtml(t.text) + '">' + escapeHtml(t.text) + '</button>').join('')
+          : '<span class="cal-empty"></span>') +
+        '</div></div>';
+    }
+    // 下月补位
+    const endDow = (new Date(y, m, daysInMonth).getDay() + 6) % 7;
+    for (let i = 1; i < 7 - endDow; i++) {
+      html += '<div class="cal-cell other"><div class="cal-cell-num">' + i + '</div></div>';
+    }
+    grid.innerHTML = html;
+    grid.querySelectorAll('.cal-todo').forEach((btn) => btn.addEventListener('click', () => toggleTodo(btn.dataset.id)));
+  }
+  $('cal-prev').addEventListener('click', () => { todoCalDate.setMonth(todoCalDate.getMonth() - 1); loadTodos(); });
+  $('cal-next').addEventListener('click', () => { todoCalDate.setMonth(todoCalDate.getMonth() + 1); loadTodos(); });
+  $('cal-today').addEventListener('click', () => { todoCalDate = new Date(); todoCalDate.setDate(1); loadTodos(); });
+  async function toggleTodo(id) {
+    const r = await api.todos.toggle(id);
+    if (r.ok) { loadTodos(); } else toast(r.message || '操作失败', 3000);
+  }
+  $('todo-add').addEventListener('click', async () => {
+    const text = $('todo-text').value.trim();
+    if (!text) { toast('请输入待办内容'); return; }
+    const r = await api.todos.add({
+      text,
+      priority: $('todo-priority').value,
+      due: $('todo-due').value,
+      recurring: $('todo-recurring') ? $('todo-recurring').value : ''
+    });
+    if (r.ok) {
+      $('todo-text').value = '';
+      $('todo-due').value = '';
+      if ($('todo-recurring')) $('todo-recurring').value = '';
+      loadTodos();
+      toast('✅ 已添加待办');
+    } else toast(r.message || '添加失败', 3000);
+  });
+  $('todo-text').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('todo-add').click(); });
+  $('home-todos-more').addEventListener('click', () => switchView('todos'));
+
+  // ---------- 试卷管理 ----------
+  let papersData = [];
+  let paperModalMode = 'add';
+  let paperModalEditId = null;
+  let paperPaperData = null;
+  let paperAnswerData = null;
+  let paperDetailId = null;
+  function paperCardHTML(p) {
+    const hasAns = p.hasAnswer ? '<span class="paper-tag">答题卡</span>' : '';
+    const subj = p.subject ? '<span class="paper-subj">' + escapeHtml(p.subject) + '</span>' : '';
+    const date = p.date ? '<span class="paper-date">📅 ' + escapeHtml(p.date) + '</span>' : '';
+    const linked = '<span class="paper-linked">关联错题 ' + (Array.isArray(p.linkedErrors) ? p.linkedErrors.length : 0) + ' 道</span>';
+    return '<div class="paper-card" data-id="' + p.id + '">' +
+      '<div class="paper-card-head"><span class="paper-name">' + escapeHtml(p.name) + '</span>' + hasAns + '</div>' +
+      '<div class="paper-card-meta">' + subj + date + linked + '</div>' +
+      '<div class="paper-card-actions"><button class="btn-mini" data-act="view">👁 查看</button>' +
+      '<button class="btn-mini" data-act="analyze">🤖 AI 分析</button>' +
+      '<button class="btn-mini warn" data-act="del">🗑 删除</button></div>' +
+      '</div>';
+  }
+  async function loadPapers() {
+    const r = await api.papers.list().catch(() => null);
+    if (!r || !r.ok) return;
+    papersData = r.papers || [];
+    // 填充错题录入的「关联试卷」下拉框
+    const entryPaper = $('entry-paper');
+    if (entryPaper) {
+      const cur = entryPaper.value;
+      entryPaper.innerHTML = '<option value="">不关联试卷</option>' +
+        papersData.map((p) => '<option value="' + p.id + '">' + escapeHtml(p.name) + (p.subject ? '（' + escapeHtml(p.subject) + '）' : '') + '</option>').join('');
+      entryPaper.value = cur;
+    }
+    const list = $('paper-list');
+    if (!list) return;
+    list.innerHTML = papersData.length ? papersData.map(paperCardHTML).join('') : '<div class="hint">暂无试卷，点击「添加试卷」开始。</div>';
+    list.querySelectorAll('.paper-card').forEach((card) => {
+      const id = card.dataset.id;
+      card.querySelector('[data-act=view]').addEventListener('click', () => openPaperDetail(id));
+      card.querySelector('[data-act=analyze]').addEventListener('click', () => { openPaperDetail(id); runPaperAnalysis(id); });
+      card.querySelector('[data-act=del]').addEventListener('click', async () => {
+        if (!(await askYesNo('确定删除该试卷？\n将同时删除其图片与分析文件。'))) return;
+        const dr = await api.papers.del(id);
+        if (dr.ok) { toast('已删除试卷'); loadPapers(); } else toast(dr.message || '删除失败', 3000);
+      });
+    });
+  }
+  function openPaperModal(mode, id) {
+    paperModalMode = mode;
+    paperModalEditId = id || null;
+    paperPaperData = null;
+    paperAnswerData = null;
+    $('paper-modal-title').textContent = mode === 'edit' ? '编辑试卷' : '添加试卷';
+    $('paper-name').value = '';
+    $('paper-subject').value = '数学';
+    $('paper-date').value = '';
+    $('paper-has-answer').checked = false;
+    $('paper-answer-field').style.display = 'none';
+    $('paper-img-name').textContent = '';
+    $('paper-answer-name').textContent = '';
+    $('paper-img-preview').classList.add('hidden');
+    $('paper-answer-preview').classList.add('hidden');
+    if (mode === 'edit' && id) {
+      const p = papersData.find((x) => x.id === id);
+      if (p) {
+        $('paper-name').value = p.name;
+        $('paper-subject').value = p.subject || '数学';
+        $('paper-date').value = p.date || '';
+        $('paper-has-answer').checked = !!p.hasAnswer;
+        if (p.hasAnswer) $('paper-answer-field').style.display = '';
+      }
+    }
+    $('paper-modal').classList.remove('hidden');
+  }
+  function closePaperModal() { $('paper-modal').classList.add('hidden'); }
+  $('paper-add').addEventListener('click', () => openPaperModal('add'));
+  $('paper-modal-close').addEventListener('click', closePaperModal);
+  $('paper-modal-cancel').addEventListener('click', closePaperModal);
+  $('paper-has-answer').addEventListener('change', () => {
+    $('paper-answer-field').style.display = $('paper-has-answer').checked ? '' : 'none';
+  });
+  $('paper-img-btn').addEventListener('click', () => $('paper-img').click());
+  $('paper-answer-btn').addEventListener('click', () => $('paper-answer-img').click());
+  $('paper-img').addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    $('paper-img-name').textContent = f.name;
+    const rd = new FileReader();
+    rd.onload = () => {
+      openImageEditor(rd.result, (dataUrl) => {
+        paperPaperData = dataUrl;
+        const pv = $('paper-img-preview');
+        pv.innerHTML = '<img src="' + dataUrl + '" />';
+        pv.classList.remove('hidden');
+      });
+    };
+    rd.readAsDataURL(f);
+    e.target.value = '';
+  });
+  $('paper-answer-img').addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    $('paper-answer-name').textContent = f.name;
+    const rd = new FileReader();
+    rd.onload = () => {
+      openImageEditor(rd.result, (dataUrl) => {
+        paperAnswerData = dataUrl;
+        const pv = $('paper-answer-preview');
+        pv.innerHTML = '<img src="' + dataUrl + '" />';
+        pv.classList.remove('hidden');
+      });
+    };
+    rd.readAsDataURL(f);
+    e.target.value = '';
+  });
+  $('paper-modal-save').addEventListener('click', async () => {
+    const name = $('paper-name').value.trim();
+    if (!name) { toast('请输入试卷名称'); return; }
+    const data = {
+      name,
+      subject: $('paper-subject').value,
+      date: $('paper-date').value,
+      hasAnswer: $('paper-has-answer').checked,
+      paperData: paperPaperData,
+      answerData: paperAnswerData
+    };
+    const r = await api.papers.add(data);
+    if (r.ok) {
+      toast('✅ 已添加试卷');
+      closePaperModal();
+      loadPapers();
+    } else toast(r.message || '添加失败', 3000);
+  });
+  async function openPaperDetail(id) {
+    paperDetailId = id;
+    const p = papersData.find((x) => x.id === id);
+    if (!p) return;
+    $('paper-detail-title').textContent = p.name;
+    const paperImg = $('paper-detail-paper');
+    paperImg.src = '';
+    const pr = await api.papers.readImage(p.paperPath);
+    if (pr.ok) paperImg.src = pr.dataUrl;
+    const ansWrap = $('paper-detail-answer-wrap');
+    if (p.hasAnswer && p.answerPath) {
+      const ar = await api.papers.readImage(p.answerPath);
+      if (ar.ok) { $('paper-detail-answer').src = ar.dataUrl; ansWrap.style.display = ''; }
+      else ansWrap.style.display = 'none';
+    } else ansWrap.style.display = 'none';
+    $('paper-analysis').innerHTML = '<div class="hint">点击「开始 AI 分析」生成试卷分析。</div>';
+    // 渲染关联错题列表
+    const linkedEl = $('paper-linked-errors');
+    const linked = Array.isArray(p.linkedErrors) ? p.linkedErrors : [];
+    if (!linked.length) {
+      linkedEl.innerHTML = '<div class="hint">暂无关联错题。可在「错题录入」时选择关联本试卷。</div>';
+    } else {
+      linkedEl.innerHTML = linked.map((e) =>
+        '<div class="paper-linked-item" data-number="' + escapeHtml(e.number) + '">' +
+        '<span class="pl-title">' + escapeHtml(e.number) + '：' + escapeHtml(e.title || '') + '</span>' +
+        '<button class="btn-mini warn" data-unlink="1">取消关联</button></div>'
+      ).join('');
+      linkedEl.querySelectorAll('.paper-linked-item').forEach((item) => {
+        item.querySelector('[data-unlink]').addEventListener('click', async () => {
+          if (!(await askYesNo('取消该错题与本试卷的关联？'))) return;
+          const ur = await api.papers.unlinkError(id, item.dataset.number);
+          if (ur.ok) {
+            // 同步更新错题库侧关联
+            await api.errorBank.unlinkPaper(item.dataset.number, id).catch(() => {});
+            toast('已取消关联'); loadPapers(); openPaperDetail(id);
+          }
+          else toast(ur.message || '操作失败', 3000);
+        });
+      });
+    }
+    $('paper-detail-modal').classList.remove('hidden');
+    loadPaperAnalysis(id);
+  }
+  $('paper-detail-close').addEventListener('click', () => $('paper-detail-modal').classList.add('hidden'));
+  $('paper-detail-close2').addEventListener('click', () => $('paper-detail-modal').classList.add('hidden'));
+  $('paper-detail-delete').addEventListener('click', async () => {
+    if (!paperDetailId) return;
+    if (!(await askYesNo('确定删除该试卷？\n将同时删除其图片与分析文件。'))) return;
+    const dr = await api.papers.del(paperDetailId);
+    if (dr.ok) {
+      toast('已删除试卷');
+      $('paper-detail-modal').classList.add('hidden');
+      loadPapers();
+    } else toast(dr.message || '删除失败', 3000);
+  });
+  async function loadPaperAnalysis(id) {
+    const r = await api.papers.readAnalysis(id);
+    const el = $('paper-analysis');
+    if (r.ok) renderMd(el, r.content);
+    else el.innerHTML = '<div class="hint">暂无分析结果。</div>';
+  }
+  $('paper-analysis-refresh').addEventListener('click', () => { if (paperDetailId) loadPaperAnalysis(paperDetailId); });
+  async function runPaperAnalysis(id) {
+    const p = papersData.find((x) => x.id === id);
+    if (!p) return;
+    const el = $('paper-analysis');
+    el.innerHTML = '<div class="hint">正在读取试卷图片并生成分析…</div>';
+    const pr = await api.papers.readImage(p.paperPath);
+    if (!pr.ok) { el.innerHTML = '<div class="hint">读取试卷图片失败</div>'; return; }
+    let answerText = '';
+    if (p.hasAnswer && p.answerPath) {
+      const ar = await api.papers.readImage(p.answerPath);
+      if (ar.ok) answerText = '\n\n【答题卡图片】\n' + ar.dataUrl;
+    }
+    const task = {
+      providerId: state.config ? state.config.activeProvider : null,
+      mode: 'paper-analysis',
+      hasImage: true,
+      messages: [{ role: 'user', content: '请分析这张试卷图片' + (p.subject ? '（科目：' + p.subject + '）' : '') + '。请给出：1) 试卷整体结构与题型分布；2) 各题难度评估；3) 重点/易错考点归纳；4) 结合错题知识库给出针对性复习建议。请用 Markdown 输出。\n\n【试卷图片】\n' + pr.dataUrl + answerText }]
+    };
+    const r = await api.ai.runTask(task);
+    if (r && r.ok && r.content) {
+      renderMd(el, r.content);
+      await api.papers.saveAnalysis(id, r.content);
+      toast('✅ 分析完成并已保存');
+    } else {
+      el.innerHTML = '<div class="hint">分析失败：' + escapeHtml((r && r.message) || '未知错误') + '</div>';
+    }
+  }
+
   // ---------- 导航 ----------
   document.querySelectorAll('.nav-item').forEach((b) => {
     b.addEventListener('click', () => switchView(b.dataset.view));
   });
 
   // ---------- 启动 ----------
+  // ================= 生词本（英语单词生义） =================
+  const POS_OPTIONS = ['n.（名词）', 'v.（动词）', 'adj.（形容词）', 'adv.（副词）', 'prep.（介词）', 'conj.（连词）', 'pron.（代词）', 'num.（数词）', 'art.（冠词）', 'int.（感叹词）', 'phr.（短语）'];
+  // 词性显示：把简写（如 n.）统一转换为带中文标注的格式（如 n.（名词））
+  const POS_MAP = {
+    'n.': 'n.（名词）', 'v.': 'v.（动词）', 'adj.': 'adj.（形容词）', 'adv.': 'adv.（副词）',
+    'prep.': 'prep.（介词）', 'conj.': 'conj.（连词）', 'pron.': 'pron.（代词）', 'num.': 'num.（数词）',
+    'art.': 'art.（冠词）', 'int.': 'int.（感叹词）', 'phr.': 'phr.（短语）'
+  };
+  function posLabel(pos) {
+    if (!pos) return '';
+    const p = String(pos).trim();
+    return POS_MAP[p] || p;
+  }
+  // 生义显示标签：单词显示词性；短语无词性；已移除「单词形式」字段
+  function vocabSenseLabel(s, isPhrase) {
+    const parts = [];
+    if (!isPhrase && s.pos) parts.push(posLabel(s.pos));
+    if (s.meaning) parts.push(s.meaning);
+    return parts.join(' ');
+  }
+  let vocabData = { words: [] };
+  let vocabEditingId = null;
+  let vocabDetailId = null;
+  let vocabExportSel = {};
+  let vocabFilter = 'all'; // all | word | phrase
+
+  function vocabSenseRowHTML(s, idx) {
+    const isPhrase = $('vocab-type').value === 'phrase';
+    const posHtml = isPhrase ? '' : '<select class="vocab-sense-pos">' + POS_OPTIONS.map((p) => '<option value="' + p + '"' + (s.pos === p ? ' selected' : '') + '>' + p + '</option>').join('') + '</select>';
+    return '<div class="vocab-sense-row" data-i="' + idx + '">' +
+      posHtml +
+      '<input class="vocab-sense-meaning" placeholder="中文释义" value="' + escapeHtml(s.meaning || '') + '" />' +
+      '<input class="vocab-sense-example" placeholder="例句（可选）" value="' + escapeHtml(s.example || '') + '" />' +
+      '<button class="vocab-sense-del" title="删除">✕</button>' +
+      '</div>';
+  }
+
+  function renderVocabSenses() {
+    const box = $('vocab-senses');
+    const senses = box._senses || [];
+    box.innerHTML = senses.length ? senses.map(vocabSenseRowHTML).join('') : '<div class="hint">暂无生义，点击下方按钮添加。</div>';
+    box.querySelectorAll('.vocab-sense-row').forEach((row) => {
+      const i = Number(row.dataset.i);
+      const posSel = row.querySelector('.vocab-sense-pos');
+      if (posSel) posSel.addEventListener('change', () => { box._senses[i].pos = posSel.value; });
+      row.querySelector('.vocab-sense-meaning').addEventListener('input', () => { box._senses[i].meaning = row.querySelector('.vocab-sense-meaning').value; });
+      row.querySelector('.vocab-sense-example').addEventListener('input', () => { box._senses[i].example = row.querySelector('.vocab-sense-example').value; });
+    });
+    box.querySelectorAll('.vocab-sense-del').forEach((b) => {
+      b.addEventListener('click', () => {
+        const i = Number(b.closest('.vocab-sense-row').dataset.i);
+        box._senses.splice(i, 1);
+        renderVocabSenses();
+      });
+    });
+  }
+
+  // 其它词性的单词（词族补充）行
+  function vocabOtherRowHTML(o, idx) {
+    return '<div class="vocab-other-row" data-i="' + idx + '">' +
+      '<input class="vocab-other-word" placeholder="英语单词，如 abandonment" value="' + escapeHtml(o.word || '') + '" />' +
+      '<select class="vocab-other-pos">' + POS_OPTIONS.map((p) => '<option value="' + p + '"' + (o.pos === p ? ' selected' : '') + '>' + p + '</option>').join('') + '</select>' +
+      '<input class="vocab-other-meaning" placeholder="释义（可选）" value="' + escapeHtml(o.meaning || '') + '" />' +
+      '<button class="vocab-other-del" title="删除">✕</button>' +
+      '</div>';
+  }
+  function renderVocabOthers() {
+    const box = $('vocab-others');
+    const others = box._others || [];
+    box.innerHTML = others.length ? others.map(vocabOtherRowHTML).join('') : '<div class="hint">暂无其它词性，点击下方按钮补充词族单词。</div>';
+    box.querySelectorAll('.vocab-other-row').forEach((row) => {
+      const i = Number(row.dataset.i);
+      row.querySelector('.vocab-other-word').addEventListener('input', () => { box._others[i].word = row.querySelector('.vocab-other-word').value; });
+      row.querySelector('.vocab-other-pos').addEventListener('change', () => { box._others[i].pos = row.querySelector('.vocab-other-pos').value; });
+      row.querySelector('.vocab-other-meaning').addEventListener('input', () => { box._others[i].meaning = row.querySelector('.vocab-other-meaning').value; });
+    });
+    box.querySelectorAll('.vocab-other-del').forEach((b) => {
+      b.addEventListener('click', () => {
+        const i = Number(b.closest('.vocab-other-row').dataset.i);
+        box._others.splice(i, 1);
+        renderVocabOthers();
+      });
+    });
+  }
+
+  function openVocabModal(word) {
+    vocabEditingId = word ? word.id : null;
+    $('vocab-modal-title').textContent = word ? '编辑单词/短语' : '添加单词/短语';
+    $('vocab-word').value = word ? word.word : '';
+    $('vocab-type').value = word ? (word.type || 'word') : 'word';
+    $('vocab-linked').value = word ? (word.linked || '') : '';
+    const box = $('vocab-senses');
+    box._senses = word && word.senses ? word.senses.map((s) => Object.assign({}, s)) : [];
+    const obox = $('vocab-others');
+    obox._others = word && word.otherForms ? word.otherForms.map((o) => Object.assign({}, o)) : [];
+    toggleVocabLinkedField();
+    $('vocab-modal').classList.remove('hidden');
+    $('vocab-word').focus();
+  }
+  function toggleVocabLinkedField() {
+    const isPhrase = $('vocab-type').value === 'phrase';
+    $('vocab-linked-field').style.display = isPhrase ? '' : 'none';
+    // 词性列与其它词性补充仅适用于单词：短语无词性、无其它词性
+    $('vocab-other-field').style.display = isPhrase ? 'none' : '';
+    renderVocabSenses();
+    renderVocabOthers();
+    const label = $('vocab-senses-label');
+    if (label) label.textContent = isPhrase ? '生义（中文释义 + 例句）' : '生义（词性 + 中文释义 + 例句）';
+  }
+
+  // 关联词语校验：处理三种情况
+  // 1) 本身没有这个词  2) 没有匹配上（拼写/大小写）  3) 关联词是某个词的释义
+  function validateVocabLinked(linked) {
+    const words = vocabData.words || [];
+    const linkedLower = (linked || '').trim().toLowerCase();
+    if (!linkedLower) return { ok: true };
+    // 情况1：精确匹配（本身有这个单词）
+    const exact = words.find((w) => (w.word || '').trim().toLowerCase() === linkedLower);
+    if (exact) return { ok: true };
+    // 情况2：没有匹配上（模糊匹配：包含关系）
+    const similar = words.find((w) => {
+      const wl = (w.word || '').trim().toLowerCase();
+      return wl && (wl.indexOf(linkedLower) !== -1 || linkedLower.indexOf(wl) !== -1);
+    });
+    // 情况3：关联词是某个词的释义内容
+    const inSense = words.find((w) => (w.senses || []).some((s) => (s.meaning || '').toLowerCase().indexOf(linkedLower) !== -1));
+    if (similar) return { ok: false, message: '关联的「' + linked + '」未精确匹配，是否关联到「' + similar.word + '」？', suggestion: similar.word };
+    if (inSense) return { ok: false, message: '「' + linked + '」是「' + inSense.word + '」的释义，是否关联到「' + inSense.word + '」？', suggestion: inSense.word };
+    return { ok: false, message: '关联的「' + linked + '」不在生词本中，是否仍要关联？', suggestion: null };
+  }
+
+  // 把文本拆分成英文词汇（按空格/标点）
+  function splitVocabWords(text) {
+    return (text || '').toLowerCase().split(/[^a-z']+/).filter((w) => w.length > 0);
+  }
+  // 判断某个词是否与已录入的某个词条重合（词条本身或其生义中的单词形式/释义）
+  function vocabMatchesEntry(token, entry) {
+    const t = (token || '').trim().toLowerCase();
+    if (!t) return false;
+    if ((entry.word || '').trim().toLowerCase() === t) return true;
+    return (entry.senses || []).some((s) => {
+      const form = (s.form || '').trim().toLowerCase();
+      const meaning = (s.meaning || '').trim().toLowerCase();
+      return (form && form === t) || (meaning && meaning === t);
+    });
+  }
+  // 自动检测重合：录入短语时，检测短语中的词汇与已录入单词重合；录入单词时，检测该单词出现在已录入短语中
+  // 返回建议关联的候选词条（{ entry, token }），按优先级排序
+  function suggestVocabLinks(word, isPhrase) {
+    const words = vocabData.words || [];
+    const candidates = [];
+    if (isPhrase) {
+      // 录入短语：拆分短语词汇，与已录入的「单词」比对
+      const tokens = splitVocabWords(word);
+      words.forEach((w) => {
+        if (w.type === 'phrase') return; // 只与单词比对
+        tokens.forEach((tk) => {
+          if (vocabMatchesEntry(tk, w)) candidates.push({ entry: w, token: tk });
+        });
+      });
+    } else {
+      // 录入单词：检测该单词是否出现在已录入的「短语」中（短语本身或其生义）
+      const wl = (word || '').trim().toLowerCase();
+      if (!wl) return candidates;
+      words.forEach((w) => {
+        if (w.type !== 'phrase') return; // 只与短语比对
+        // 短语本身或其生义中是否包含该单词（作为组成部分）
+        const phraseTokens = splitVocabWords(w.word);
+        const inPhrase = phraseTokens.includes(wl) || vocabMatchesEntry(wl, w);
+        if (inPhrase) candidates.push({ entry: w, token: wl });
+      });
+    }
+    // 去重（同一词条只保留一次）
+    const seen = {};
+    return candidates.filter((c) => {
+      if (seen[c.entry.id]) return false;
+      seen[c.entry.id] = true;
+      return true;
+    });
+  }
+
+  // 查找关联到指定单词的短语列表
+  function findLinkedPhrases(word) {
+    const wl = (word || '').trim().toLowerCase();
+    if (!wl) return [];
+    return (vocabData.words || []).filter((w) => w.type === 'phrase' && w.linked && (w.linked || '').trim().toLowerCase() === wl);
+  }
+
+  function renderVocabList() {
+    const el = $('vocab-list');
+    const q = ($('vocab-search').value || '').trim().toLowerCase();
+    let words = (vocabData.words || []).filter((w) => !w.deleted);
+    if (vocabFilter === 'word') words = words.filter((w) => w.type !== 'phrase');
+    else if (vocabFilter === 'phrase') words = words.filter((w) => w.type === 'phrase');
+    if (q) {
+      words = words.filter((w) => {
+        const wordMatch = (w.word || '').toLowerCase().indexOf(q) !== -1;
+        const senseMatch = (w.senses || []).some((s) => (s.meaning || '').toLowerCase().indexOf(q) !== -1);
+        return wordMatch || senseMatch;
+      });
+    }
+    const label = vocabFilter === 'word' ? '单词' : (vocabFilter === 'phrase' ? '短语' : '单词');
+    $('vocab-count').textContent = '共 ' + words.length + ' 个' + label;
+    if (!words.length) {
+      el.innerHTML = '<div class="hint">' + (q ? '未找到匹配的' + label + '。' : '暂无' + label + '，点击「添加单词」开始记录。') + '</div>';
+      return;
+    }
+    el.innerHTML = words.map((w) => {
+      const senses = (w.senses || []).map((s) => '<span class="vocab-sense-tag">' + escapeHtml(vocabSenseLabel(s, w.type === 'phrase')) + '</span>').join('');
+      const typeTag = (w.type === 'phrase') ? '<span class="vocab-item-type">短语</span>' : '<span class="vocab-item-type">单词</span>';
+      // 短语：显示关联的单词；单词：显示关联到它的短语（最多显示 3 个）
+      let linked = '';
+      if (w.type === 'phrase' && w.linked) {
+        linked = '<div class="vocab-item-linked">关联：<a class="vocab-link" data-word="' + escapeHtml(w.linked) + '">' + escapeHtml(w.linked) + '</a></div>';
+      } else if (w.type !== 'phrase') {
+        const phrases = findLinkedPhrases(w.word);
+        if (phrases.length) {
+          const shown = phrases.slice(0, 3).map((p) => '<a class="vocab-link" data-word="' + escapeHtml(p.word) + '">' + escapeHtml(p.word) + '</a>').join('、');
+          linked = '<div class="vocab-item-linked">被短语关联：' + shown + (phrases.length > 3 ? ' 等 ' + phrases.length + ' 个' : '') + '</div>';
+        }
+      }
+      const otherTag = (w.otherForms || []).length ? '<div class="vocab-item-other">其它词性：' + (w.otherForms || []).map((o) => escapeHtml(o.word || '')).join('、') + '</div>' : '';
+      return '<div class="vocab-item" data-id="' + w.id + '">' +
+        '<label class="vocab-check" title="加入生词卷"><input type="checkbox" data-id="' + w.id + '" /></label>' +
+        '<div class="vocab-item-main">' +
+        '<div class="vocab-item-word">' + escapeHtml(w.word || '') + typeTag + '</div>' +
+        '<div class="vocab-item-senses">' + (senses || '<span class="hint">暂无生义</span>') + '</div>' +
+        otherTag +
+        linked +
+        '</div>' +
+        '<div class="vocab-item-actions">' +
+        '<button class="vocab-item-edit" title="编辑" data-id="' + w.id + '"><svg class="ic"><use href="#i-edit"/></svg></button>' +
+        '<button class="vocab-item-del" title="删除" data-id="' + w.id + '"><svg class="ic"><use href="#i-trash"/></svg></button>' +
+        '</div>' +
+        '</div>';
+    }).join('');
+    el.querySelectorAll('.vocab-item').forEach((item) => {
+      item.addEventListener('click', (e) => {
+        if (e.target.closest('.vocab-check')) return;
+        if (e.target.closest('.vocab-item-edit')) { openVocabModal((vocabData.words || []).find((x) => x.id === item.dataset.id)); return; }
+        if (e.target.closest('.vocab-item-del')) { deleteVocabItem(item.dataset.id); return; }
+        // 点击关联单词链接 → 跳转到对应单词详情
+        const linkEl = e.target.closest('.vocab-link');
+        if (linkEl) {
+          const target = (vocabData.words || []).find((x) => (x.word || '').trim().toLowerCase() === (linkEl.dataset.word || '').trim().toLowerCase());
+          if (target) { openVocabDetail(target.id); return; }
+          toast('未找到关联单词「' + linkEl.dataset.word + '」', 3000);
+          return;
+        }
+        openVocabDetail(item.dataset.id);
+      });
+    });
+  }
+  async function deleteVocabItem(id) {
+    if (!(await askYesNo('确定删除该单词/短语？'))) return;
+    const r = await api.vocab.wordsDelete(id);
+    if (r && r.ok) { toast('已删除'); await loadVocab(); }
+    else toast((r && r.message) || '删除失败', 3000);
+  }
+
+  async function loadVocab() {
+    const r = await api.vocab.wordsList().catch(() => null);
+    if (r && r.ok) {
+      vocabData = r;
+      // 过滤已删除（软删除标记），避免删除后仍显示
+      if (Array.isArray(vocabData.words)) vocabData.words = vocabData.words.filter((w) => !w.deleted);
+    }
+    renderVocabList();
+  }
+
+  function openVocabDetail(id) {
+    const w = (vocabData.words || []).find((x) => x.id === id);
+    if (!w) return;
+    vocabDetailId = id;
+    const typeTag = (w.type === 'phrase') ? '<span class="vocab-detail-type">短语</span>' : '<span class="vocab-detail-type">单词</span>';
+    const linked = (w.type === 'phrase' && w.linked) ? '<div class="vocab-detail-linked">关联单词：<a class="vocab-link" data-word="' + escapeHtml(w.linked) + '">' + escapeHtml(w.linked) + '</a></div>' : '';
+    // 单词详情：显示关联到它的短语
+    if (w.type !== 'phrase') {
+      const phrases = findLinkedPhrases(w.word);
+      if (phrases.length) {
+        const shown = phrases.map((p) => '<a class="vocab-link" data-word="' + escapeHtml(p.word) + '">' + escapeHtml(p.word) + '</a>').join('、');
+        linked += '<div class="vocab-detail-linked">被短语关联：' + shown + '</div>';
+      }
+    }
+    $('vocab-detail-word').innerHTML = escapeHtml(w.word || '') + typeTag;
+    const senses = (w.senses || []).map((s) => {
+      let html = '<div class="vocab-detail-sense"><span class="vocab-detail-pos">' + escapeHtml(w.type === 'phrase' ? '' : posLabel(s.pos)) + '</span><span>' + escapeHtml(s.meaning || '') + '</span></div>';
+      if (s.example) html += '<blockquote class="vocab-detail-example">' + escapeHtml(s.example) + '</blockquote>';
+      return html;
+    }).join('');
+    const otherHtml = (w.otherForms || []).length
+      ? '<div class="vocab-detail-others" style="margin-top:8px"><span style="color:var(--text-2);font-size:13px">其它词性：</span>' + (w.otherForms || []).map((o) => '<span style="margin-right:8px">' + escapeHtml(o.word || '') + ' <span style="color:var(--accent-3)">' + posLabel(o.pos) + '</span>' + (o.meaning ? ' ' + escapeHtml(o.meaning) : '') + '</span>').join('') + '</div>'
+      : '';
+    $('vocab-detail-senses').innerHTML = (senses || '<div class="hint">暂无生义</div>') + linked + otherHtml;
+    // 复习进度
+    renderVocabDetailReview(w);
+    // 关联单词可点击跳转
+    $('vocab-detail-senses').querySelectorAll('.vocab-link').forEach((linkEl) => {
+      linkEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const target = (vocabData.words || []).find((x) => (x.word || '').trim().toLowerCase() === (linkEl.dataset.word || '').trim().toLowerCase());
+        if (target) {
+          $('vocab-detail-modal').classList.add('hidden');
+          openVocabDetail(target.id);
+        } else {
+          toast('未找到关联单词「' + linkEl.dataset.word + '」', 3000);
+        }
+      });
+    });
+    $('vocab-detail-modal').classList.remove('hidden');
+  }
+
+  // 渲染单词详情中的复习进度
+  function renderVocabDetailReview(w) {
+    const el = $('vocab-detail-review');
+    if (!el) return;
+    const stage = Math.max(0, Math.min(w.reviewStage || 0, REVIEW_STAGE_NAMES.length - 1));
+    const stageName = REVIEW_STAGE_NAMES[stage];
+    const mastered = (w.reviewStage || 0) >= REVIEW_INTERVALS.length;
+    const next = w.nextReview || '';
+    const last = w.lastReview || '从未复习';
+    const reviewCount = w.reviewCount || 0;
+    const correctCount = w.correctCount || 0;
+    const wrongCount = w.wrongCount || 0;
+    // 阶段进度条（共 7 个阶段）
+    const barPct = Math.round((stage / REVIEW_STAGE_NAMES.length) * 100);
+    const nextText = next ? (next <= todayStr() ? '今天到期（待复习）' : next + ' 到期') : '待安排';
+    el.innerHTML =
+      '<div class="vdr-title"><svg class="ic"><use href="#i-refresh-cw"/></svg> 复习进度</div>' +
+      '<div class="vdr-stage">当前阶段：<b>' + stageName + '</b>' + (mastered ? ' <span class="vdr-mastered">✓ 已掌握</span>' : '') + '</div>' +
+      '<div class="vdr-bar"><div class="vdr-fill" style="width:' + barPct + '%"></div></div>' +
+      '<div class="vdr-meta">' +
+      '<span>复习 ' + reviewCount + ' 次</span>' +
+      '<span>正确 ' + correctCount + '</span>' +
+      '<span>错误 ' + wrongCount + '</span>' +
+      '</div>' +
+      '<div class="vdr-meta">' +
+      '<span>上次复习：' + (last || '从未复习') + '</span>' +
+      '<span>下次复习：' + nextText + '</span>' +
+      '</div>' +
+      '<button class="btn-mini vdr-reset" id="vocab-detail-reset"><svg class="ic"><use href="#i-reset"/></svg> 重置复习进度</button>';
+    const resetBtn = el.querySelector('#vocab-detail-reset');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', async () => {
+        const r = await api.vocab.reviewReset(w.id);
+        if (r && r.ok) {
+          toast('已重置复习进度');
+          // 更新本地数据
+          const ww = (vocabData.words || []).find((x) => x.id === w.id);
+          if (ww) {
+            ww.reviewStage = 0; ww.lastReview = ''; ww.nextReview = ww.createdAt || todayStr();
+            ww.reviewCount = 0; ww.correctCount = 0; ww.wrongCount = 0;
+          }
+          renderVocabDetailReview(ww || w);
+        } else {
+          toast((r && r.message) || '重置失败', 3000);
+        }
+      });
+    }
+  }
+
+  function todayStr() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function renderVocabExportSelect() {
+    const el = $('vocab-export-select');
+    const words = vocabData.words || [];
+    const itemHtml = (w) => {
+      const checked = vocabExportSel[w.id] ? ' checked' : '';
+      const senses = (w.senses || []).map((s) => vocabSenseLabel(s, w.type === 'phrase')).join('；');
+      return '<label class="vocab-export-item"><input type="checkbox" data-id="' + w.id + '"' + checked + ' />' +
+        '<span class="ve-word">' + escapeHtml(w.word || '') + '</span>' +
+        '<span class="ve-sense">' + escapeHtml(senses) + '</span></label>';
+    };
+    const wordsGroup = words.filter((w) => w.type !== 'phrase');
+    const phrasesGroup = words.filter((w) => w.type === 'phrase');
+    let html = '';
+    if (wordsGroup.length) {
+      html += '<div class="ve-group"><div class="ve-group-title">单词（' + wordsGroup.length + '）</div>' + wordsGroup.map(itemHtml).join('') + '</div>';
+    }
+    if (phrasesGroup.length) {
+      html += '<div class="ve-group"><div class="ve-group-title">短语（' + phrasesGroup.length + '）</div>' + phrasesGroup.map(itemHtml).join('') + '</div>';
+    }
+    el.innerHTML = html;
+    el.querySelectorAll('input[type=checkbox]').forEach((cb) => {
+      cb.addEventListener('change', () => {
+        vocabExportSel[cb.dataset.id] = cb.checked;
+        updateVocabExportCount();
+      });
+    });
+    updateVocabExportCount();
+  }
+  function updateVocabExportCount() {
+    const n = Object.keys(vocabExportSel).filter((k) => vocabExportSel[k]).length;
+    $('vocab-export-count').textContent = n;
+  }
+
+  // ================= 词语复习（艾宾浩斯遗忘曲线） =================
+  let reviewData = { words: [] };
+  let reviewOverviewData = null;
+  let reviewQueue = [];      // 当前复习队列
+  let reviewIndex = 0;       // 当前题号
+  let reviewMode = 'en';     // en=给出英文写中文, zh=给出中文拼英文
+  let reviewStats = { correct: 0, wrong: 0 };
+  let reviewExportSel = {};
+
+  // 艾宾浩斯间隔（与主进程一致）
+  const REVIEW_INTERVALS = [1, 2, 4, 7, 15, 30, 60];
+  const REVIEW_STAGE_NAMES = ['新学', '第1次', '第2次', '第3次', '第4次', '第5次', '长期巩固'];
+
+  function reviewStageName(stage) {
+    const s = Math.max(0, Math.min(stage || 0, REVIEW_STAGE_NAMES.length - 1));
+    return REVIEW_STAGE_NAMES[s];
+  }
+
+  async function loadReview() {
+    const [ov, due, words] = await Promise.all([
+      api.vocab.reviewOverview().catch(() => null),
+      api.vocab.reviewDue().catch(() => null),
+      api.vocab.wordsList().catch(() => null)
+    ]);
+    if (ov && ov.ok) reviewOverviewData = ov;
+    if (due && due.ok) {
+      reviewData = due;
+      // 过滤已删除，避免出现在待复习列表 / 复习队列中
+      if (Array.isArray(reviewData.words)) reviewData.words = reviewData.words.filter((w) => !w.deleted);
+    }
+    if (words && words.ok) {
+      vocabData = words;
+      // 过滤已删除，避免出现在生词本列表 / 复习统计中
+      if (Array.isArray(vocabData.words)) vocabData.words = vocabData.words.filter((w) => !w.deleted);
+    }
+    renderReviewCards();
+    renderReviewDueList();
+    renderReviewStages();
+  }
+
+  function renderReviewCards() {
+    const el = $('review-cards');
+    if (!el) return;
+    const ov = reviewOverviewData || {};
+    const total = ov.total || 0;
+    const due = ov.due || 0;
+    const mastered = ov.mastered || 0;
+    const progress = total ? Math.round((mastered / total) * 100) : 0;
+    el.innerHTML =
+      '<div class="review-card-stat rc-accent"><span class="rc-label">今日待复习</span><span class="rc-value">' + due + '</span><span class="rc-sub">个单词需要复习</span></div>' +
+      '<div class="review-card-stat"><span class="rc-label">已掌握</span><span class="rc-value">' + mastered + '</span><span class="rc-sub">完成全部阶段</span></div>' +
+      '<div class="review-card-stat"><span class="rc-label">单词总数</span><span class="rc-value">' + total + '</span><span class="rc-sub">生词本全部单词</span></div>' +
+      '<div class="review-card-stat"><span class="rc-label">掌握进度</span><span class="rc-value">' + progress + '%</span><span class="rc-sub">已掌握 / 总数</span></div>';
+  }
+
+  function renderReviewDueList() {
+    const el = $('review-due-list');
+    if (!el) return;
+    const words = (reviewData.words || []).filter((w) => !w.deleted);
+    if (!words.length) {
+      el.innerHTML = '<div class="hint">太棒了！今天没有需要复习的单词 🎉</div>';
+      return;
+    }
+    el.innerHTML = words.map((w) => {
+      const senses = (w.senses || []).map((s) => vocabSenseLabel(s, w.type === 'phrase')).join('；');
+      const stage = reviewStageName(w.reviewStage);
+      const days = w.nextReview ? daysFromToday(w.nextReview) : 0;
+      const daysText = days > 0 ? '已到期 ' + days + ' 天' : '今天到期';
+      return '<div class="review-due-item">' +
+        '<span class="rd-word">' + escapeHtml(w.word || '') + '</span>' +
+        '<span class="rd-sense">' + escapeHtml(senses) + '</span>' +
+        '<span class="rd-stage">' + stage + '</span>' +
+        '<span class="rd-days">' + daysText + '</span>' +
+        '</div>';
+    }).join('');
+  }
+
+  function daysFromToday(dateStr) {
+    if (!dateStr) return 0;
+    const t = new Date(); t.setHours(0, 0, 0, 0);
+    const d = new Date(dateStr + 'T00:00:00');
+    return Math.round((t - d) / 86400000);
+  }
+
+  function renderReviewStages() {
+    const el = $('review-stage-list');
+    if (!el) return;
+    const ov = reviewOverviewData || {};
+    const counts = ov.stageCounts || {};
+    const total = ov.total || 0;
+    const maxCount = Math.max(1, ...Object.values(counts));
+    // 按阶段分组所有单词（用于展开查看）
+    const stageWords = {};
+    (vocabData.words || []).forEach((w) => {
+      const s = Math.max(0, Math.min(w.reviewStage || 0, REVIEW_STAGE_NAMES.length - 1));
+      if (!stageWords[s]) stageWords[s] = [];
+      stageWords[s].push(w);
+    });
+    el.innerHTML = REVIEW_STAGE_NAMES.map((name, i) => {
+      const c = counts[i] || 0;
+      const pct = total ? Math.round((c / total) * 100) : 0;
+      const barPct = maxCount ? Math.round((c / maxCount) * 100) : 0;
+      const words = stageWords[i] || [];
+      const listHtml = words.length ? words.map((w) => {
+        const senses = (w.senses || []).map((s) => vocabSenseLabel(s, w.type === 'phrase')).join('；');
+        return '<div class="review-stage-word" data-id="' + w.id + '">' +
+          '<span class="rsw-word">' + escapeHtml(w.word || '') + '</span>' +
+          '<span class="rsw-sense">' + escapeHtml(senses) + '</span>' +
+          '</div>';
+      }).join('') : '<div class="hint" style="padding:6px 4px">暂无单词</div>';
+      return '<div class="review-stage-row">' +
+        '<span class="review-stage-name">' + name + '</span>' +
+        '<div class="review-stage-bar"><div class="review-stage-fill" style="width:' + barPct + '%"></div></div>' +
+        '<span class="review-stage-count">' + c + ' 个（' + pct + '%）</span>' +
+        (c ? '<button class="review-stage-toggle" data-stage="' + i + '" title="展开/收起">▾</button>' : '') +
+        '</div>' +
+        '<div class="review-stage-words" id="review-stage-words-' + i + '" style="display:none">' + listHtml + '</div>';
+    }).join('');
+    // 展开/收起
+    el.querySelectorAll('.review-stage-toggle').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const stage = btn.dataset.stage;
+        const box = $('review-stage-words-' + stage);
+        const isOpen = box.style.display !== 'none';
+        box.style.display = isOpen ? 'none' : 'block';
+        btn.textContent = isOpen ? '▾' : '▴';
+      });
+    });
+    // 点击单词跳转到生词本详情
+    el.querySelectorAll('.review-stage-word').forEach((item) => {
+      item.addEventListener('click', () => {
+        const id = item.dataset.id;
+        // 确保生词本数据已加载
+        if (!(vocabData.words || []).length) {
+          loadVocab().then(() => {
+            switchView('vocab');
+            openVocabDetail(id);
+          });
+        } else {
+          switchView('vocab');
+          openVocabDetail(id);
+        }
+      });
+    });
+  }
+
+  // 开始复习
+  function startReview() {
+    const words = (reviewData.words || []).filter((w) => !w.deleted);
+    if (!words.length) { toast('今天没有需要复习的单词'); return; }
+    reviewQueue = words.slice();
+    // 重置提交标记（避免上次复习残留导致本次不提交）
+    reviewQueue.forEach((w) => { w._submitted = false; });
+    reviewIndex = 0;
+    reviewStats = { correct: 0, wrong: 0 };
+    $('review-modal-title').textContent = '词语复习';
+    $('review-modal').classList.remove('hidden');
+    $('review-mode-row').classList.remove('hidden');
+    $('review-next').classList.add('hidden');
+    $('review-input-row').classList.remove('hidden');
+    $('review-input').value = '';
+    $('review-feedback').innerHTML = '';
+    $('review-input').focus();
+    renderReviewQuestion();
+  }
+
+  function renderReviewQuestion() {
+    const w = reviewQueue[reviewIndex];
+    if (!w) { finishReview(); return; }
+    const total = reviewQueue.length;
+    const cur = reviewIndex + 1;
+    $('review-progress-bar').style.width = (cur / total * 100) + '%';
+    $('review-progress-text').textContent = cur + ' / ' + total;
+    const senses = (w.senses || []).map((s) => vocabSenseLabel(s, w.type === 'phrase')).join('；');
+    const card = $('review-card');
+    if (reviewMode === 'en') {
+      // 给出英文，写中文
+      card.innerHTML = '<div class="rc-prompt">请写出中文释义</div><div class="rc-main">' + escapeHtml(w.word || '') + '</div>';
+    } else {
+      // 给出中文，拼英文
+      card.innerHTML = '<div class="rc-prompt">请拼写英文单词</div><div class="rc-main">' + escapeHtml(senses || '（无释义）') + '</div>';
+    }
+    $('review-input').value = '';
+    $('review-feedback').innerHTML = '';
+    $('review-next').classList.add('hidden');
+    $('review-input-row').classList.remove('hidden');
+    $('review-input').focus();
+  }
+
+  function submitReviewAnswer() {
+    const w = reviewQueue[reviewIndex];
+    if (!w) return;
+    const answer = ($('review-input').value || '').trim();
+    if (!answer) { toast('请输入答案'); return; }
+    const senses = (w.senses || []).map((s) => vocabSenseLabel(s, w.type === 'phrase')).join('；');
+    let correct = false;
+    if (reviewMode === 'en') {
+      // 给出英文写中文：宽松匹配（包含任一释义关键词）
+      const meanings = (w.senses || []).map((s) => (s.meaning || '').toLowerCase());
+      correct = meanings.some((m) => m && (answer.toLowerCase().indexOf(m) !== -1 || m.indexOf(answer.toLowerCase()) !== -1));
+    } else {
+      // 给出中文拼英文：精确匹配（忽略大小写与首尾空格）
+      const target = (w.word || '').trim().toLowerCase();
+      correct = answer.toLowerCase() === target;
+    }
+    // 提交结果到主进程（更新复习进度）
+    // 仅首次作答时提交（升级/降级）；重复练习（重拼）答对时不再升级，只确认掌握
+    if (!w._submitted) {
+      api.vocab.reviewSubmit(w.id, correct);
+      w._submitted = true;
+    }
+    if (correct) reviewStats.correct++; else reviewStats.wrong++;
+    // 答错时把该词重新加入队列末尾，本轮末尾会重新复习直到拼对
+    if (!correct) reviewQueue.push(w);
+    // 显示反馈
+    const fb = $('review-feedback');
+    if (correct) {
+      fb.className = 'review-feedback rf-correct';
+      fb.innerHTML = '✅ 回答正确！';
+    } else {
+      fb.className = 'review-feedback rf-wrong';
+      const expected = reviewMode === 'en' ? senses : (w.word || '');
+      fb.innerHTML = '❌ 回答错误，复习进度已重置。<br>正确答案：<span class="rf-answer">' + escapeHtml(expected) + '</span><br><span class="rf-hint">本轮末尾将重新复习该词，直到拼对为止</span>';
+    }
+    $('review-input-row').classList.add('hidden');
+    $('review-next').classList.remove('hidden');
+  }
+
+  function nextReviewQuestion() {
+    reviewIndex++;
+    if (reviewIndex >= reviewQueue.length) {
+      finishReview();
+    } else {
+      renderReviewQuestion();
+    }
+  }
+
+  function finishReview() {
+    const correct = reviewStats.correct;
+    const wrong = reviewStats.wrong;
+    const total = correct + wrong;
+    $('review-modal-title').textContent = '复习完成';
+    $('review-progress-bar').style.width = '100%';
+    $('review-progress-text').textContent = total + ' / ' + total;
+    $('review-card').innerHTML =
+      '<div class="rc-prompt">本次复习完成</div>' +
+      '<div class="rc-main" style="font-size:22px">正确 ' + correct + ' 题 · 错误 ' + wrong + ' 题</div>' +
+      '<div class="rc-hint">正确率 ' + (total ? Math.round(correct / total * 100) : 0) + '%' + (wrong ? ' · 错误单词已重置进度' : '') + '</div>';
+    $('review-input-row').classList.add('hidden');
+    $('review-feedback').innerHTML = '';
+    $('review-next').classList.add('hidden');
+    // 刷新概览
+    loadReview();
+  }
+
+  function closeReviewModal() {
+    $('review-modal').classList.add('hidden');
+    loadReview();
+  }
+
+  // 复习卷导出
+  function renderReviewExportSelect() {
+    const el = $('review-export-select');
+    if (!el) return;
+    const words = (reviewData.words || []).length ? reviewData.words : (vocabData.words || []);
+    el.innerHTML = words.map((w) => {
+      const checked = reviewExportSel[w.id] ? ' checked' : '';
+      const senses = (w.senses || []).map((s) => vocabSenseLabel(s, w.type === 'phrase')).join('；');
+      const stage = reviewStageName(w.reviewStage);
+      return '<label class="vocab-export-item"><input type="checkbox" data-id="' + w.id + '"' + checked + ' />' +
+        '<span class="ve-word">' + escapeHtml(w.word || '') + '</span>' +
+        '<span class="ve-sense">' + escapeHtml(senses) + '（' + stage + '）</span></label>';
+    }).join('');
+    el.querySelectorAll('input[type=checkbox]').forEach((cb) => {
+      cb.addEventListener('change', () => {
+        reviewExportSel[cb.dataset.id] = cb.checked;
+        updateReviewExportCount();
+      });
+    });
+    updateReviewExportCount();
+  }
+  function updateReviewExportCount() {
+    const n = Object.keys(reviewExportSel).filter((k) => reviewExportSel[k]).length;
+    $('review-export-count').textContent = n;
+  }
+
+  // 复习视图事件绑定
+  $('review-start').addEventListener('click', startReview);
+  $('review-export').addEventListener('click', () => {
+    reviewExportSel = {};
+    renderReviewExportSelect();
+    $('review-export-modal').classList.remove('hidden');
+  });
+  $('review-export-close').addEventListener('click', () => $('review-export-modal').classList.add('hidden'));
+  $('review-export-cancel').addEventListener('click', () => $('review-export-modal').classList.add('hidden'));
+  $('review-export-go').addEventListener('click', async () => {
+    const ids = Object.keys(reviewExportSel).filter((k) => reviewExportSel[k]);
+    if (!ids.length) { toast('请至少选择一个单词'); return; }
+    const words = (reviewData.words || []).length ? reviewData.words : (vocabData.words || []);
+    const selected = words.filter((w) => ids.indexOf(w.id) !== -1);
+    const r = await api.vocab.reviewExport({
+      words: selected,
+      mode: $('review-export-mode').value,
+      withAnswer: $('review-export-answer').checked,
+      title: $('review-export-title').value.trim() || '词语复习卷'
+    });
+    if (r && r.ok) { toast('已导出：' + r.path); $('review-export-modal').classList.add('hidden'); }
+    else toast((r && r.message) || '导出失败', 3000);
+  });
+  $('review-modal-close').addEventListener('click', closeReviewModal);
+  $('review-modal-cancel').addEventListener('click', closeReviewModal);
+  $('review-submit').addEventListener('click', submitReviewAnswer);
+  $('review-next').addEventListener('click', nextReviewQuestion);
+  $('review-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      if ($('review-next').classList.contains('hidden')) submitReviewAnswer();
+      else nextReviewQuestion();
+    }
+  });
+  // 复习模式切换
+  document.querySelectorAll('#review-mode-row .review-mode-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#review-mode-row .review-mode-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      reviewMode = btn.dataset.mode;
+      renderReviewQuestion();
+    });
+  });
+
+  // ================= 文言文生义 =================
+  let wenyanData = { words: [] };
+  let wenyanEditingId = null;
+  let wenyanDetailId = null;
+  let wenyanExportSel = {};
+  let wenyanFilter = 'all'; // all | 字 | 词
+
+  function wenyanSenseRowHTML(s, idx) {
+    return '<div class="wenyan-sense-row" data-i="' + idx + '">' +
+      '<input class="wenyan-sense-meaning" placeholder="生义" value="' + escapeHtml(s.meaning || '') + '" />' +
+      '<div class="wenyan-sense-example">' +
+      '<input class="wenyan-sense-ex" placeholder="例句（可选）" value="' + escapeHtml(s.example || '') + '" />' +
+      '<input class="wenyan-sense-src" placeholder="来源（可选）" value="' + escapeHtml(s.source || '') + '" />' +
+      '</div>' +
+      '<button class="wenyan-sense-del" title="删除">✕</button>' +
+      '</div>';
+  }
+
+  function renderWenyanSenses() {
+    const box = $('wenyan-senses');
+    const senses = box._senses || [];
+    box.innerHTML = senses.length ? senses.map(wenyanSenseRowHTML).join('') : '<div class="hint">暂无生义，点击下方按钮添加。</div>';
+    box.querySelectorAll('.wenyan-sense-del').forEach((b) => {
+      b.addEventListener('click', () => {
+        const i = Number(b.closest('.wenyan-sense-row').dataset.i);
+        box._senses.splice(i, 1);
+        renderWenyanSenses();
+      });
+    });
+  }
+
+  function openWenyanModal(word) {
+    wenyanEditingId = word ? word.id : null;
+    $('wenyan-modal-title').textContent = word ? '编辑字/词' : '录入字/词';
+    $('wenyan-char').value = word ? word.char : '';
+    $('wenyan-type').value = word ? (word.type || '字') : '字';
+    const box = $('wenyan-senses');
+    box._senses = word && word.senses ? word.senses.map((s) => Object.assign({}, s)) : [];
+    renderWenyanSenses();
+    $('wenyan-modal').classList.remove('hidden');
+    $('wenyan-char').focus();
+  }
+
+  function renderWenyanList() {
+    const el = $('wenyan-list');
+    const q = ($('wenyan-search').value || '').trim().toLowerCase();
+    let words = (wenyanData.words || []).filter((w) => !w.deleted);
+    if (wenyanFilter === '字') words = words.filter((w) => (w.type || '字') === '字');
+    else if (wenyanFilter === '词') words = words.filter((w) => (w.type || '字') === '词');
+    if (q) {
+      words = words.filter((w) => {
+        const charMatch = (w.char || '').toLowerCase().indexOf(q) !== -1;
+        const senseMatch = (w.senses || []).some((s) => (s.meaning || '').toLowerCase().indexOf(q) !== -1 || (s.example || '').toLowerCase().indexOf(q) !== -1);
+        return charMatch || senseMatch;
+      });
+    }
+    const zi = words.filter((w) => (w.type || '字') === '字');
+    const ci = words.filter((w) => (w.type || '字') === '词');
+    $('wenyan-count').textContent = '共 ' + words.length + ' 个（字 ' + zi.length + ' · 词 ' + ci.length + '）';
+    if (!words.length) {
+      el.innerHTML = '<div class="hint">' + (q ? '未找到匹配的字/词。' : '暂无记录，点击「录入」开始。') + '</div>';
+      return;
+    }
+    const itemHTML = (w) => {
+      const senses = (w.senses || []).map((s) => '<span class="wenyan-sense-tag">' + escapeHtml(s.meaning || '') + '</span>').join('');
+      return '<div class="wenyan-item" data-id="' + w.id + '">' +
+        '<label class="wenyan-check" title="加入导出"><input type="checkbox" data-id="' + w.id + '" /></label>' +
+        '<div class="wenyan-item-main">' +
+        '<div class="wenyan-item-char">' + escapeHtml(w.char || '') + '<span class="wenyan-item-type">' + escapeHtml(w.type || '字') + '</span></div>' +
+        '<div class="wenyan-item-senses">' + (senses || '<span class="hint">暂无生义</span>') + '</div>' +
+        '</div>' +
+        '<div class="wenyan-item-actions">' +
+        '<button class="wenyan-item-edit" title="编辑" data-id="' + w.id + '"><svg class="ic"><use href="#i-edit"/></svg></button>' +
+        '<button class="wenyan-item-del" title="删除" data-id="' + w.id + '"><svg class="ic"><use href="#i-trash"/></svg></button>' +
+        '</div>' +
+        '</div>';
+    };
+    let html = '';
+    if (zi.length) html += '<div class="wenyan-group"><div class="wenyan-group-title">字</div>' + zi.map(itemHTML).join('') + '</div>';
+    if (ci.length) html += '<div class="wenyan-group"><div class="wenyan-group-title">词</div>' + ci.map(itemHTML).join('') + '</div>';
+    el.innerHTML = html;
+    el.querySelectorAll('.wenyan-item').forEach((item) => {
+      item.addEventListener('click', (e) => {
+        if (e.target.closest('.wenyan-check')) return;
+        if (e.target.closest('.wenyan-item-edit')) { openWenyanModal((wenyanData.words || []).find((x) => x.id === item.dataset.id)); return; }
+        if (e.target.closest('.wenyan-item-del')) { deleteWenyanItem(item.dataset.id); return; }
+        openWenyanDetail(item.dataset.id);
+      });
+    });
+  }
+  async function deleteWenyanItem(id) {
+    if (!(await askYesNo('确定删除该字/词？'))) return;
+    const r = await api.vocab.wenyanDelete(id);
+    if (r && r.ok) { toast('已删除'); await loadWenyan(); }
+    else toast((r && r.message) || '删除失败', 3000);
+  }
+
+  async function loadWenyan() {
+    const r = await api.vocab.wenyanList().catch(() => null);
+    if (r && r.ok) {
+      wenyanData = r;
+      // 过滤已删除，避免删除后仍显示
+      if (Array.isArray(wenyanData.words)) wenyanData.words = wenyanData.words.filter((w) => !w.deleted);
+    }
+    renderWenyanList();
+  }
+
+  function openWenyanDetail(id) {
+    const w = (wenyanData.words || []).find((x) => x.id === id);
+    if (!w) return;
+    wenyanDetailId = id;
+    $('wenyan-detail-char').textContent = w.char || '';
+    const senses = (w.senses || []).map((s) => {
+      let html = '<div class="wenyan-detail-sense"><div class="wenyan-detail-meaning">' + escapeHtml(s.meaning || '') + '</div>';
+      if (s.example) {
+        html += '<blockquote class="wenyan-detail-example">' + escapeHtml(s.example || '') + (s.source ? '<span class="wenyan-detail-src">——' + escapeHtml(s.source) + '</span>' : '') + '</blockquote>';
+      }
+      html += '</div>';
+      return html;
+    }).join('');
+    $('wenyan-detail-senses').innerHTML = senses || '<div class="hint">暂无生义</div>';
+    $('wenyan-detail-modal').classList.remove('hidden');
+  }
+
+  function renderWenyanExportSelect() {
+    const el = $('wenyan-export-select');
+    const words = wenyanData.words || [];
+    el.innerHTML = words.map((w) => {
+      const checked = wenyanExportSel[w.id] ? ' checked' : '';
+      const senses = (w.senses || []).map((s) => s.meaning).join('；');
+      return '<label class="wenyan-export-item"><input type="checkbox" data-id="' + w.id + '"' + checked + ' />' +
+        '<span class="we-char">' + escapeHtml(w.char || '') + '</span>' +
+        '<span class="we-type">' + escapeHtml(w.type || '字') + '</span>' +
+        '<span class="we-sense">' + escapeHtml(senses) + '</span></label>';
+    }).join('');
+    el.querySelectorAll('input[type=checkbox]').forEach((cb) => {
+      cb.addEventListener('change', () => {
+        wenyanExportSel[cb.dataset.id] = cb.checked;
+        updateWenyanExportCount();
+      });
+    });
+    updateWenyanExportCount();
+  }
+  function updateWenyanExportCount() {
+    const n = Object.keys(wenyanExportSel).filter((k) => wenyanExportSel[k]).length;
+    $('wenyan-export-count').textContent = n;
+  }
+
+  // 生词本事件绑定
+  $('vocab-add').addEventListener('click', () => openVocabModal(null));
+  $('vocab-modal-close').addEventListener('click', () => $('vocab-modal').classList.add('hidden'));
+  $('vocab-modal-cancel').addEventListener('click', () => $('vocab-modal').classList.add('hidden'));
+  $('vocab-sense-add').addEventListener('click', () => {
+    const box = $('vocab-senses');
+    const isPhrase = $('vocab-type').value === 'phrase';
+    box._senses.push(isPhrase ? { meaning: '' } : { pos: 'n.', meaning: '' });
+    renderVocabSenses();
+  });
+  $('vocab-other-add').addEventListener('click', () => {
+    const box = $('vocab-others');
+    box._others.push({ word: '', pos: 'n.', meaning: '' });
+    renderVocabOthers();
+  });
+  $('vocab-modal-save').addEventListener('click', async () => {
+    const word = $('vocab-word').value.trim();
+    if (!word) { toast('请输入英文单词/短语'); return; }
+    // 内容重复检测：主词 + 其它词性里的英语单词都参与检测
+    const others0 = ($('vocab-others')._others || []).filter((o) => o.word && o.word.trim());
+    const allWords = [word].concat((others0 || []).map((o) => o.word.trim()));
+    const lowerAll = allWords.map((s) => s.toLowerCase());
+    const dup = (vocabData.words || []).find((w) => {
+      if (w.deleted || w.id === vocabEditingId) return false;
+      const wl = (w.word || '').trim().toLowerCase();
+      if (lowerAll.indexOf(wl) !== -1) return true;
+      return (w.otherForms || []).some((o) => lowerAll.indexOf((o.word || '').trim().toLowerCase()) !== -1);
+    });
+    if (dup) {
+      const dupText = dup.word + ((dup.otherForms || []).length ? '（含其它词性）' : '');
+      const goDup = await askYesNo('已有录入内容「' + dupText + '」（' + (dup.type === 'phrase' ? '短语' : '单词') + '）。\n\n点击「确认执行」跳转到该条，可补充其它词性或编辑，点击「取消」坚持录入。');
+      if (goDup) {
+        $('vocab-modal').classList.add('hidden');
+        openVocabModal(dup); // 打开编辑弹窗，便于补充其它词性
+        return;
+      }
+      // 用户选择坚持录入 → 继续后续校验与保存
+    }
+    const box = $('vocab-senses');
+    const senses = (box._senses || []).filter((s) => s.meaning && s.meaning.trim());
+    const otherForms = ($('vocab-others')._others || []).filter((o) => o.word && o.word.trim());
+    const linked = $('vocab-linked').value.trim();
+    const isPhrase = $('vocab-type').value === 'phrase';
+    // 关联词语校验：处理三种情况
+    if (isPhrase && linked) {
+      const check = validateVocabLinked(linked);
+      if (!check.ok) {
+        if (check.suggestion) {
+          // 情况2/3：有建议的关联词，询问是否改用
+          const useSug = await askYesNo(check.message + '\n\n点击「确认执行」改用「' + check.suggestion + '」，点击「取消」保留原值。');
+          if (useSug) $('vocab-linked').value = check.suggestion;
+        } else {
+          // 情况1：本身没有这个词，询问是否仍要关联
+          const keep = await askYesNo(check.message + '\n\n点击「确认执行」仍要关联，点击「取消」清空关联。');
+          if (!keep) $('vocab-linked').value = '';
+        }
+      }
+    }
+    // 自动检测重合：录入短语时检测短语词汇与已录入单词重合；录入单词时检测该单词出现在已录入短语中
+    const suggestions = suggestVocabLinks(word, isPhrase);
+    if (suggestions.length) {
+      if (isPhrase) {
+        // 录入短语：若尚未手动关联，提示是否关联到重合的单词
+        if (!$('vocab-linked').value.trim()) {
+          const names = suggestions.map((c) => '「' + c.entry.word + '」（' + c.token + '）').join('、');
+          const linkTo = await askYesNo('检测到短语中的词汇与已录入单词重合：' + names + '\n\n是否关联到「' + suggestions[0].entry.word + '」？\n点击「确认执行」关联，点击「取消」不关联。');
+          if (linkTo) $('vocab-linked').value = suggestions[0].entry.word;
+        }
+      } else {
+        // 录入单词：检测到该单词出现在已录入短语中，提示是否关联（自动更新短语的 linked）
+        const names = suggestions.map((c) => '「' + c.entry.word + '」').join('、');
+        const linkPhrases = await askYesNo('检测到该单词出现在已录入短语中：' + names + '\n\n是否将这些短语关联到「' + word + '」？\n点击「确认执行」关联，点击「取消」不关联。');
+        if (linkPhrases) {
+          // 保存单词后，自动更新这些短语的 linked
+          const pendingPhraseLinks = suggestions.map((c) => c.entry.id);
+          const data2 = { word, type: $('vocab-type').value, linked: $('vocab-linked').value.trim(), senses, otherForms };
+          let r2;
+          if (vocabEditingId) r2 = await api.vocab.wordsUpdate(vocabEditingId, data2);
+          else r2 = await api.vocab.wordsAdd(data2);
+          if (r2 && r2.ok) {
+            // 更新短语的 linked
+            for (const pid of pendingPhraseLinks) {
+              const p = (vocabData.words || []).find((x) => x.id === pid);
+              if (p) {
+                const pd = { word: p.word, type: 'phrase', linked: word, senses: p.senses || [] };
+                await api.vocab.wordsUpdate(pid, pd).catch(() => {});
+              }
+            }
+            toast(vocabEditingId ? '已更新' : '已添加');
+            $('vocab-modal').classList.add('hidden');
+            await loadVocab();
+            return;
+          } else {
+            toast((r2 && r2.message) || '保存失败', 3000);
+            return;
+          }
+        }
+      }
+    }
+    // 保存单词时：若此前有短语关联了它，提示用户
+    if (!isPhrase && !vocabEditingId) {
+      const wordLower = word.toLowerCase();
+      const linkedPhrases = (vocabData.words || []).filter((w) => w.type === 'phrase' && w.linked && (w.linked || '').trim().toLowerCase() === wordLower);
+      if (linkedPhrases.length) {
+        const names = linkedPhrases.map((w) => '「' + w.word + '」').join('、');
+        await askYesNo('已有短语 ' + names + ' 关联到「' + word + '」。\n\n现在新建该单词后，关联即可正常跳转。');
+      }
+    }
+    const data = { word, type: $('vocab-type').value, linked: $('vocab-linked').value.trim(), senses, otherForms };
+    let r;
+    if (vocabEditingId) r = await api.vocab.wordsUpdate(vocabEditingId, data);
+    else r = await api.vocab.wordsAdd(data);
+    if (r && r.ok) {
+      toast(vocabEditingId ? '已更新' : '已添加');
+      $('vocab-modal').classList.add('hidden');
+      await loadVocab();
+    } else toast((r && r.message) || '保存失败', 3000);
+  });
+  $('vocab-type').addEventListener('change', toggleVocabLinkedField);
+  $('vocab-detail-close').addEventListener('click', () => $('vocab-detail-modal').classList.add('hidden'));
+  $('vocab-detail-close2').addEventListener('click', () => $('vocab-detail-modal').classList.add('hidden'));
+  $('vocab-detail-edit').addEventListener('click', () => {
+    const w = (vocabData.words || []).find((x) => x.id === vocabDetailId);
+    $('vocab-detail-modal').classList.add('hidden');
+    if (w) openVocabModal(w);
+  });
+  $('vocab-detail-delete').addEventListener('click', async () => {
+    if (!(await askYesNo('确定删除该单词？'))) return;
+    const r = await api.vocab.wordsDelete(vocabDetailId);
+    if (r && r.ok) { toast('已删除'); $('vocab-detail-modal').classList.add('hidden'); await loadVocab(); }
+    else toast((r && r.message) || '删除失败', 3000);
+  });
+  $('vocab-search').addEventListener('input', renderVocabList);
+  $('vocab-filter').addEventListener('click', (e) => {
+    const btn = e.target.closest('.vf-btn');
+    if (!btn) return;
+    vocabFilter = btn.dataset.f;
+    $('vocab-filter').querySelectorAll('.vf-btn').forEach((b) => b.classList.toggle('active', b === btn));
+    renderVocabList();
+  });
+  $('vocab-export').addEventListener('click', () => {
+    vocabExportSel = {};
+    renderVocabExportSelect();
+    $('vocab-export-modal').classList.remove('hidden');
+  });
+  $('vocab-export-close').addEventListener('click', () => $('vocab-export-modal').classList.add('hidden'));
+  $('vocab-export-cancel').addEventListener('click', () => $('vocab-export-modal').classList.add('hidden'));
+  $('vocab-export-go').addEventListener('click', async () => {
+    const ids = Object.keys(vocabExportSel).filter((k) => vocabExportSel[k]);
+    let words = (vocabData.words || []).filter((w) => ids.indexOf(w.id) !== -1);
+    if (!words.length) { toast('请至少勾选一个单词'); return; }
+    const randomN = Number($('vocab-export-random').value);
+    if (randomN && randomN > 0 && randomN < words.length) {
+      const shuffled = words.slice().sort(() => Math.random() - 0.5);
+      words = shuffled.slice(0, randomN);
+    }
+    const r = await api.vocab.wordsExport({
+      words,
+      mode: $('vocab-export-mode').value,
+      withAnswer: $('vocab-export-answer').checked,
+      title: $('vocab-export-title').value.trim() || '英语生词卷'
+    });
+    if (r && r.ok) { toast('已导出：' + r.path); $('vocab-export-modal').classList.add('hidden'); }
+    else if (r && r.canceled) { /* 用户取消 */ }
+    else toast((r && r.message) || '导出失败', 3000);
+  });
+
+  // 文言文事件绑定
+  $('wenyan-add').addEventListener('click', () => openWenyanModal(null));
+  $('wenyan-modal-close').addEventListener('click', () => $('wenyan-modal').classList.add('hidden'));
+  $('wenyan-modal-cancel').addEventListener('click', () => $('wenyan-modal').classList.add('hidden'));
+  $('wenyan-sense-add').addEventListener('click', () => {
+    const box = $('wenyan-senses');
+    box._senses.push({ meaning: '', example: '', source: '' });
+    renderWenyanSenses();
+  });
+  $('wenyan-modal-save').addEventListener('click', async () => {
+    const char = $('wenyan-char').value.trim();
+    if (!char) { toast('请输入字/词'); return; }
+    // 内容重复检测：已有同内容时提示「跳转补充」或「坚持录入」
+    const dup = (wenyanData.words || []).find((w) => !w.deleted && w.id !== wenyanEditingId && (w.char || '').trim() === char);
+    if (dup) {
+      const goDup = await askYesNo('已有录入内容「' + dup.char + '」（' + (dup.type || '字') + '）。\n\n点击「确认执行」跳转到该条编辑/补充，点击「取消」坚持录入。');
+      if (goDup) {
+        $('wenyan-modal').classList.add('hidden');
+        openWenyanModal(dup); // 打开编辑弹窗，便于补充
+        return;
+      }
+      // 用户选择坚持录入 → 继续保存
+    }
+    const box = $('wenyan-senses');
+    const senses = (box._senses || []).filter((s) => s.meaning && s.meaning.trim());
+    const data = { char, type: $('wenyan-type').value, senses };
+    let r;
+    if (wenyanEditingId) r = await api.vocab.wenyanUpdate(wenyanEditingId, data);
+    else r = await api.vocab.wenyanAdd(data);
+    if (r && r.ok) {
+      toast(wenyanEditingId ? '已更新' : '已录入');
+      $('wenyan-modal').classList.add('hidden');
+      await loadWenyan();
+    } else toast((r && r.message) || '保存失败', 3000);
+  });
+  $('wenyan-detail-close').addEventListener('click', () => $('wenyan-detail-modal').classList.add('hidden'));
+  $('wenyan-detail-close2').addEventListener('click', () => $('wenyan-detail-modal').classList.add('hidden'));
+  $('wenyan-detail-edit').addEventListener('click', () => {
+    const w = (wenyanData.words || []).find((x) => x.id === wenyanDetailId);
+    $('wenyan-detail-modal').classList.add('hidden');
+    if (w) openWenyanModal(w);
+  });
+  $('wenyan-detail-delete').addEventListener('click', async () => {
+    if (!(await askYesNo('确定删除该字/词？'))) return;
+    const r = await api.vocab.wenyanDelete(wenyanDetailId);
+    if (r && r.ok) { toast('已删除'); $('wenyan-detail-modal').classList.add('hidden'); await loadWenyan(); }
+    else toast((r && r.message) || '删除失败', 3000);
+  });
+  $('wenyan-search').addEventListener('input', renderWenyanList);
+  $('wenyan-filter').addEventListener('click', (e) => {
+    const btn = e.target.closest('.vf-btn');
+    if (!btn) return;
+    wenyanFilter = btn.dataset.f;
+    $('wenyan-filter').querySelectorAll('.vf-btn').forEach((b) => b.classList.toggle('active', b === btn));
+    renderWenyanList();
+  });
+  $('wenyan-export').addEventListener('click', () => {
+    wenyanExportSel = {};
+    renderWenyanExportSelect();
+    $('wenyan-export-modal').classList.remove('hidden');
+  });
+  $('wenyan-export-close').addEventListener('click', () => $('wenyan-export-modal').classList.add('hidden'));
+  $('wenyan-export-cancel').addEventListener('click', () => $('wenyan-export-modal').classList.add('hidden'));
+  $('wenyan-export-go').addEventListener('click', async () => {
+    const ids = Object.keys(wenyanExportSel).filter((k) => wenyanExportSel[k]);
+    const words = (wenyanData.words || []).filter((w) => ids.indexOf(w.id) !== -1);
+    if (!words.length) { toast('请至少勾选一个字/词'); return; }
+    const r = await api.vocab.wenyanExport({
+      words,
+      title: $('wenyan-export-title').value.trim() || '文言文生义'
+    });
+    if (r && r.ok) { toast('已导出：' + r.path); $('wenyan-export-modal').classList.add('hidden'); }
+    else if (r && r.canceled) { /* 用户取消 */ }
+    else toast((r && r.message) || '导出失败', 3000);
+  });
+
   async function init() {
     const cfg = await api.settings.get();
     if (cfg) applyConfig(cfg);
